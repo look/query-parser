@@ -1,0 +1,27 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    awesome_print (1.7.0)
+    blankslate (3.1.3)
+    coderay (1.1.1)
+    method_source (0.8.2)
+    minitest (5.10.1)
+    parslet (1.7.1)
+      blankslate (>= 2.0, <= 4.0)
+    pry (0.10.4)
+      coderay (~> 1.1.0)
+      method_source (~> 0.8.1)
+      slop (~> 3.4)
+    slop (3.6.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  awesome_print
+  minitest
+  parslet
+  pry
+
+BUNDLED WITH
+   1.14.6
