@@ -12,12 +12,11 @@ class PhraseParser < Parslet::Parser
 end
 
 class PhraseTransformer < Parslet::Transform
-  rule(:term => simple(:term)) { term.to_s }
   rule(:clause => subtree(:clause))  do
     if clause[:term]
       TermClause.new(clause[:operator]&.to_s, clause[:term].to_s)
     elsif clause[:phrase]
-      PhraseClause.new(clause[:operator]&.to_s, clause[:phrase].join(" "))
+      PhraseClause.new(clause[:operator]&.to_s, clause[:phrase].map { |p| p[:term].to_s }.join(" "))
     end
   end
   rule(:query => sequence(:clauses)) { PhraseQuery.new(clauses) }
