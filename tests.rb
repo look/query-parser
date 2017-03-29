@@ -1,5 +1,6 @@
 require_relative 'term_parser'
 require_relative 'boolean_term_parser'
+require_relative 'phrase_parser'
 require 'minitest/autorun'
 require 'awesome_print'
 
@@ -19,5 +20,27 @@ class ParserTests < Minitest::Test
     query = BooleanTermTransformer.new.apply(tree)
     ap query
     ap query.to_elasticsearch
+  end
+
+  def test_phrase_parser
+    tree = PhraseParser.new.parse('+foo -"cat in the hat"')
+    ap tree
+
+    query = PhraseTransformer.new.apply(tree)
+    ap query
+    ap query.to_elasticsearch
+  end
+
+  def test_phrase_transformer
+    parsed_query = {:query=>[{:clause=>{:operator=>"+", :term=>"foo"}}, {:clause=>{:operator=>"-", :phrase=>[{:term=>"cat"}, {:term=>"in"}, {:term=>"the"}, {:term=>"hat"}]}}]}
+
+    phrase_query = PhraseTransformer.new.apply(parsed_query)
+    ap phrase_query
+
+    assert_empty phrase_query.should_clauses
+    assert(phrase_query.must_clauses.size, 1)
+    assert(phrase_query.must_not_clauses.size, 1)
+    assert_equal("foo", phrase_query.must_clauses.first.term, "foo")
+    assert_equal("cat in the hat", phrase_query.must_not_clauses.first.phrase)
   end
 end
