@@ -1,33 +1,19 @@
 require 'parslet'
 require 'ap'
+require_relative 'operator'
 
 class BooleanTermParser < Parslet::Parser
   rule(:term) { match('[a-zA-Z0-9]').repeat(1).as(:term) }
   rule(:operator) { (match("[+]") | match("[-]")).as(:operator) }
   rule(:clause) { (operator.maybe >> term).as(:clause) }
   rule(:space)  { match('\s').repeat(1) }
-  rule(:query) { (clause >> (space >> clause).repeat).as(:query) }
+  rule(:query) { (clause >> space.maybe).repeat.as(:query) }
   root(:query)
 end
 
 class BooleanTermTransformer < Parslet::Transform
   rule(:clause => subtree(:clause)) { Clause.new(clause[:operator]&.to_s, clause[:term].to_s) } # TODO: strict get in case subtree overmatches?
   rule(:query => sequence(:clauses)) { BooleanTermQuery.new(clauses) }
-end
-
-class Operator
-  def self.symbol(str)
-    case str
-    when '+'
-      :must
-    when '-'
-      :must_not
-    when nil
-      :should
-    else
-      raise "Unknown operator: #{str}"
-    end
-  end
 end
 
 class Clause

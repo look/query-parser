@@ -1,13 +1,14 @@
 require 'parslet'
+require_relative 'operator'
 
 class PhraseParser < Parslet::Parser
   rule(:term) { match('[a-zA-Z0-9]').repeat(1).as(:term) }
   rule(:quote) { match('["]') }
   rule(:operator) { (match("[+]") | match("[-]")).as(:operator) }
-  rule(:phrase) { (quote >> term >> (space >> term).repeat >> quote).as(:phrase) }
+  rule(:phrase) { (quote >> (term >> space.maybe).repeat >> quote).as(:phrase) }
   rule(:clause) { (operator.maybe >> (phrase | term)).as(:clause) }
   rule(:space)  { match('\s').repeat(1) }
-  rule(:query) { (clause >> (space >> clause).repeat).as(:query) }
+  rule(:query) { (clause >> space.maybe).repeat.as(:query) }
   root(:query)
 end
 
@@ -20,21 +21,6 @@ class PhraseTransformer < Parslet::Transform
     end
   end
   rule(:query => sequence(:clauses)) { PhraseQuery.new(clauses) }
-end
-
-class Operator
-  def self.symbol(str)
-    case str
-    when '+'
-      :must
-    when '-'
-      :must_not
-    when nil
-      :should
-    else
-      raise "Unknown operator: #{str}"
-    end
-  end
 end
 
 class TermClause
