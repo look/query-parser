@@ -4,7 +4,7 @@ require_relative 'operator'
 
 class BooleanTermParser < Parslet::Parser
   rule(:term) { match('[a-zA-Z0-9]').repeat(1).as(:term) }
-  rule(:operator) { (match("[+]") | match("[-]")).as(:operator) }
+  rule(:operator) { (str('+') | str('-')).as(:operator) }
   rule(:clause) { (operator.maybe >> term).as(:clause) }
   rule(:space)  { match('\s').repeat(1) }
   rule(:query) { (clause >> space.maybe).repeat.as(:query) }

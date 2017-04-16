@@ -3,8 +3,8 @@ require_relative 'operator'
 
 class PhraseParser < Parslet::Parser
   rule(:term) { match('[a-zA-Z0-9]').repeat(1).as(:term) }
-  rule(:quote) { match('["]') }
-  rule(:operator) { (match("[+]") | match("[-]")).as(:operator) }
+  rule(:quote) { str('"') }
+  rule(:operator) { (str('+') | str('-')).as(:operator) }
   rule(:phrase) { (quote >> (term >> space.maybe).repeat >> quote).as(:phrase) }
   rule(:clause) { (operator.maybe >> (phrase | term)).as(:clause) }
   rule(:space)  { match('\s').repeat(1) }
