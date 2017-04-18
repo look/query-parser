@@ -44,6 +44,12 @@ end
 class PhraseQuery
   attr_accessor :should_clauses, :must_not_clauses, :must_clauses
 
+  def self.elasticsearch_query_for(query_string)
+    tree = PhraseParser.new.parse(query_string)
+    query = PhraseTransformer.new.apply(tree)
+    query.to_elasticsearch
+  end
+
   def initialize(clauses)
     self.should_clauses = clauses.select { |c| c.operator == :should }
     self.must_not_clauses = clauses.select { |c| c.operator == :must_not }
@@ -53,21 +59,21 @@ class PhraseQuery
   def to_elasticsearch
     query = {
       :query => {
-        :boolean => {
+        :bool => {
         }
       }
     }
 
     if should_clauses.any?
-      query[:query][:boolean][:should] = should_clauses.map { |clause| clause_to_query(clause) }
+      query[:query][:bool][:should] = should_clauses.map { |clause| clause_to_query(clause) }
     end
 
     if must_clauses.any?
-      query[:query][:boolean][:must] = must_clauses.map { |clause| clause_to_query(clause) }
+      query[:query][:bool][:must] = must_clauses.map { |clause| clause_to_query(clause) }
     end
 
     if must_not_clauses.any?
-      query[:query][:boolean][:must_not] = must_not_clauses.map { |clause| clause_to_query(clause) }
+      query[:query][:bool][:must_not] = must_not_clauses.map { |clause| clause_to_query(clause) }
     end
 
     query

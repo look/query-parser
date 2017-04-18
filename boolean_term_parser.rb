@@ -43,15 +43,15 @@ class BooleanTermQuery
     }
 
     if should_terms.any?
-      query[:query][:boolean][:should] = should_terms.map { |term| match(term) }
+      query[:query][:bool][:should] = should_terms.map { |term| match(term) }
     end
 
     if must_terms.any?
-      query[:query][:boolean][:must] = must_terms.map { |term| match(term) }
+      query[:query][:bool][:must] = must_terms.map { |term| match(term) }
     end
 
     if must_not_terms.any?
-      query[:query][:boolean][:must_not] = must_not_terms.map { |term| match(term) }
+      query[:query][:bool][:must_not] = must_not_terms.map { |term| match(term) }
     end
 
     query
