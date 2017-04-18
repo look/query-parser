@@ -2,7 +2,7 @@ require 'minitest/autorun'
 require_relative '../../phrase_parser'
 require_relative '../../elasticsearch_helpers'
 
-class SearchTest < Minitest::Test
+class SearchTests < Minitest::Test
 
   def self.configure_es
     return if defined?(@configured)
