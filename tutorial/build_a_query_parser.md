@@ -100,8 +100,7 @@ To build the parser, I'll use [Parslet](http://kschiess.github.io/parslet/) whic
 
 First, I'll define the rules for a term query:
 
-CODE
-
+{{code="boolean_term_parser.rb:5-12"}}
 
 NOTE: build up from terms example? show parsing a string with it.
 
