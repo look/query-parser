@@ -20,7 +20,7 @@ Escaping characters with regular expressions ranges from difficult to impossible
 
 Also, some characters can't be escaped:
 
-> `<` and `>`` can’t be escaped at all. The only way to prevent them from attempting to create a range query is to remove them from the query string entirely.
+> `<` and `>` can’t be escaped at all. The only way to prevent them from attempting to create a range query is to remove them from the query string entirely.
 
 * Users can intentionally or unintentionally trigger advanced query features. For example, limiting a search term to a single field with `field_name:term` or boosting a term with `term^10`. The can range from confusing to malicous.
 
