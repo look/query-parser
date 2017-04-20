@@ -28,7 +28,7 @@ task :build do
 
   # Why yes, I am manipulating markup with regular expressions in a tutorial about writing a parser.
   # Why do you ask?
-  tutorial.gsub!(/{{code="([a-z_]+\.rb):(\d+)-(\d+)"}}/) do |s|
+  tutorial.gsub!(/^\s*{{code="([a-z_]+\.rb):(\d+)-(\d+)"}}$/) do |s|
     filename = $1
     # Line numbers are 1 indexed
     start_line = Integer($2) - 1
