@@ -37,7 +37,7 @@ class BooleanTermQuery
   def to_elasticsearch
     query = {
       :query => {
-        :boolean => {
+        :bool => {
         }
       }
     }
