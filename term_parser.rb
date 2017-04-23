@@ -2,7 +2,7 @@ require 'parslet'
 
 class TermParser < Parslet::Parser
   rule(:term) { match('[a-zA-Z0-9]').repeat(1).as(:term) }
-  rule(:space)  { match('\s').repeat(1) }
+  rule(:space) { match('\s').repeat(1) }
   rule(:query) { (term >> space.maybe).repeat.as(:query) }
   root(:query)
 end
