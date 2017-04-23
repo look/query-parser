@@ -13,7 +13,7 @@ class PhraseParser < Parslet::Parser
 end
 
 class PhraseTransformer < Parslet::Transform
-  rule(:clause => subtree(:clause))  do
+  rule(:clause => subtree(:clause)) do
     if clause[:term]
       TermClause.new(clause[:operator]&.to_s, clause[:term].to_s)
     elsif clause[:phrase]
