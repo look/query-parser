@@ -88,22 +88,155 @@ Our first parser will be extremely limited. Given input like "cat in the hat" it
 
 This is a [match]() query, which does not interpret its input. You may notice that...we could just take the user input and put it in JSON structure. But we need to start somewhere!
 
-Parslet is a library for generating [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_grammar)-style parsers. You define the rules of your grammar, and Parslet does the rest.
+## Defining a grammar
 
-In the language we are defining, a query is recognized as one or more terms separated by whitespace. A term is defined as one or more characters.
+First, let's define a grammar for our simple query language using [Backus–Naur form](https://en.wikipedia.org/wiki/Backus%E2%80%93Naur_form) (BNF).
 
-    QUERY
-     |    \
-     |     \
-     TERM   TERM *
+```
+<query> ::= <term> | <query>
+<term> ::= <alphanumeric> | <term>
+```
 
-In Parslet, this can be expressed as:
+Where `alphanumeric` is defined as the characters `[a-zA-Z0-9]`. The defintions are recursive to allow repetition. A [railroad diagram](https://en.wikipedia.org/wiki/Syntax_diagram) helps visualize the syntax.
 
-XXX: Could work up to this more. This includes capturing with `as`, which is not super obvious.
+### Query
+
+<svg class="railroad-diagram" width="180" height="92" viewBox="0 0 180 92">
+<g transform="translate(.5 .5)">
+<path d="M 20 21 v 20 m 10 -20 v 20 m -10 -10 h 20.5"></path>
+<g>
+<path d="M40 31h0"></path>
+<path d="M140 31h0"></path>
+<path d="M40 31h20"></path>
+<g class="non-terminal">
+<path d="M60 31h4"></path>
+<path d="M116 31h4"></path>
+<rect x="64" y="20" width="52" height="22"></rect>
+<text x="90" y="35">term</text>
+</g>
+<path d="M120 31h20"></path>
+<path d="M40 31a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10"></path>
+<g class="non-terminal">
+<path d="M60 61h0"></path>
+<path d="M120 61h0"></path>
+<rect x="60" y="50" width="60" height="22"></rect>
+<text x="90" y="65">query</text>
+</g>
+<path d="M120 61a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10"></path>
+</g>
+<path d="M 140 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path>
+</g>
+</svg>
+
+
+### Term
+
+<svg class="railroad-diagram" width="236" height="92" viewBox="0 0 236 92">
+<g transform="translate(.5 .5)">
+<path d="M 20 21 v 20 m 10 -20 v 20 m -10 -10 h 20.5"></path>
+<g>
+<path d="M40 31h0"></path>
+<path d="M196 31h0"></path>
+<path d="M40 31h20"></path>
+<g class="terminal">
+<path d="M60 31h0"></path>
+<path d="M176 31h0"></path>
+<rect x="60" y="20" width="116" height="22" rx="10" ry="10"></rect>
+<text x="118" y="35">alphanumeric</text>
+</g>
+<path d="M176 31h20"></path>
+<path d="M40 31a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10"></path>
+<g class="non-terminal">
+<path d="M60 61h32"></path>
+<path d="M144 61h32"></path>
+<rect x="92" y="50" width="52" height="22"></rect>
+<text x="118" y="65">term</text>
+</g>
+<path d="M176 61a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10"></path>
+</g>
+<path d="M 196 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path>
+</g>
+</svg>
+
+## Defining a grammar with Parslet
+
+BNF defines the rules for a genative grammar for a context-free language, which means it can be ambiguous. Parsing algorithms transform the grammar into a parser that can produce a parse tree, with special cases to handle the ambiguity of a context-free grammar. 
+
+Another way of parsing is to start with an analytic grammar. The [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_grammar) (PEG) looks like BNF, but the choice operator always picks the first match. PEGs cannot be ambiguous.
+
+
+> Though there is a tremendous body of literature on parsing algorithms, most of these algorithms assume that the language to be parsed is initially described by means of a generative formal grammar, and that the goal is to transform this generative grammar into a working parser. Strictly speaking, a generative grammar does not in any way correspond to the algorithm used to parse a language, and various algorithms have different restrictions on the form of production rules that are considered well-formed.
+>
+> An alternative approach is to formalize the language in terms of an analytic grammar in the first place, which more directly corresponds to the structure and semantics of a parser for the language. Examples of analytic grammar formalisms include the following:
+>
+> https://en.wikipedia.org/wiki/Formal_grammar#Analytic_grammars
+
+[Parslet](http://kschiess.github.io/parslet/) is a Ruby library for generating PEG-style parsers. You define the rules of your grammar, and Parslet does the rest. XXX that's not totally true. "and Parslet creates a parser that returns a parse tree for input" XXX
+
+To define a parser with Parslet, subclass `Parslet::Parser` and define rules, which are called atoms, the building blocks of your grammar:
+
+```ruby
+class MyParser < Parslet::Parser
+  # match matches one character; repeat allows 1 or more repetitions
+  rule(:term) { match('[a-zA-Z0-9]').repeat(1) } 
+
+  rule(:space) { match('\s').repeat(1) }
+
+  # >> means "followed by"; maybe is equavalent to repeat(0, 1)
+  rule(:query) { (term >> space.maybe).repeat }
+
+  # The root tells Parslet where to start parsing the input
+  root(:query)
+end
+```
+
+Notice how rules can be used by other rules. They plain old Ruby objects.
+
+Now that we have a parser, we can instantiate it and parse a string:
+
+```
+MyParser.new.parse("hello parslet")
+# => "hello world"@0
+```
+
+It doesn't look like much! But notice the `@0`. The result is a [Parslet::Slice](http://www.rubydoc.info/github/kschiess/parslet/Parslet/Slice), and `@0` indicates where in the input string the match occurred. This is really useful for more complicated parsers.
+
+This humble parser is also capable of rejecting invalid input:
+
+```
+MyParser.new.parse("hello, parslet")
+# => Parslet::ParseFailed: Extra input after last repetition at line 1 char 6.
+```
+
+The error message pinpoints exactly which character violated the grammar. With the `#ascii_tree`, you can get more details.
+
+```
+begin
+  MyParser.new.parse("hello, parslet")
+rescue Parslet::ParseFailed => e
+  puts e.cause.ascii_tree
+end
+```
+
+Prints:
+
+```
+Extra input after last repetition at line 1 char 6.
+`- Failed to match sequence (TERM SPACE?) at line 1 char 6.
+   `- Expected at least 1 of [a-zA-Z0-9] at line 1 char 6.
+      `- Failed to match [a-zA-Z0-9] at line 1 char 6.
+
+```
+
+## Building a parse tree
+
+The simple parser above can recognize strings that match the grammar, but can't do anything with it. Using `#as`, we can capture parts of the input that we want to keep and save them as a parse tree. Anything not named with `#as` is discarded.
+
+We need to capture the terms and the overall query.
 
     {{code="term_parser.rb:3-8"}}
 
-Naming the components with `as` allows us to access them in the parse tree:
+This produces a parse tree rooted at `:query` that contains a list of `:term` objects. The value of the `:term` is a `Parslet::Slice`, as we saw above.
 
     TermParser.new.parse("cat in the hat")
     #=>
@@ -116,11 +249,9 @@ Naming the components with `as` allows us to access them in the parse tree:
       ]
     }
 
-The reason why the terms are annotated with a number is that the leaf values of the parse tree are instances of [Parslet::Slice](http://www.rubydoc.info/github/kschiess/parslet/Parslet/Slice) which record where in the string the match began. This is useful for reporting errors.
+Once you have defined your parse tree, you can create a [Parslet::Transform]() to convert the parse tree into an abstract syntax tree; or in our case, an object that knows how to convert itself to the Elasticsearch query DSL.
 
-Once you have defined a grammar for your language, you can create parse trees from strings that conform to that grammar. Then you can define a [Parslet::Transform]() to convert the parse tree into an abstract syntax tree; or in our case, an object that knows how to convert itself to the Elasticsearch query DSL.
-
-A Parlet::Transform defines rules for matching part of the parse tree and converting it to something else. Walking up from the leaf nodes, the entire tree is consumed. For this language, the transformation is simple: match a `:term` Hash and convert it to a String, then match an array of terms and instantiate a `TermQuery` object:
+A Parlet::Transform defines rules for matching part of the parse tree and converting it to something else. Walking up from the leaf nodes, the entire tree is consumed. For this parse tree, the transformation is simple: match a `:term` Hash and convert it to a String, then match an array of terms and instantiate a `TermQuery` object:
 
     {{code="term_parser.rb:10-14"}}
 
@@ -145,9 +276,7 @@ All together, we can now generate an Elasticsearch `match` query:
       }
     }
 
-This is a a roundabout way of generating a simple Elasticsearch query, but now we can build it up.
-
-XXX: OK, that was fun, but so far this could be replaced with a simple match query to Elasticsearch. Let's add boolean operators to the query language.
+OK, that was fun, but this is a a roundabout way of generating a simple Elasticsearch query. So far, the code could be replaced with a simple `match` query to Elasticsearch. But we can build up from here.
 
 ## Boolean queries: should, must, and must not
 
@@ -309,9 +438,15 @@ https://www.youtube.com/watch?v=ET_POMJNWNs
 https://jeffreykegler.github.io/Ocean-of-Awareness-blog/individual/2015/03/peg.html
 https://www.codeproject.com/Articles/10115/Crafting-an-interpreter-Part-Parsing-and-Grammar
 
+http://matt.might.net/articles/grammars-bnf-ebnf/
+
+http://www.bottlecaps.de/rr/ui
+
+Original PEG paper http://bford.info/pub/lang/peg.pdf
 
 [1] OK, it was me.
 
 [1] see the accompanying repository for the sample data
 
 [2] match query is actually sufficient to do this by itself. xxxxxx
+
