@@ -276,6 +276,8 @@ All together, we can now generate an Elasticsearch `match` query:
       }
     }
 
+XXX NEED TO TALK ABOUT FIELDS! This example uses `title` hardcoded. Where'd that come from?
+
 OK, that was fun, but this is a a roundabout way of generating a simple Elasticsearch query. So far, the code could be replaced with a simple `match` query to Elasticsearch. But we can build up from here.
 
 ## Boolean queries: should, must, and must not
@@ -286,21 +288,85 @@ In a query language, that might look like this: "cat -hat +cradle". I like using
 
 To support boolean logic, we'll add a new entity to our parse tree: a clause. A clause has an optional operator (`+` or `-`) and a term.
 
-```
-          Query
-            |
-            |
-         Clause
-         /    \
-        /      \
-     Operator  Term
-```
+<svg class="railroad-diagram" width="290" height="120" viewBox="0 0 290 120">
+<g transform="translate(.5 .5)">
+<path d="M 20 21 v 20 m 10 -20 v 20 m -10 -10 h 20.5"></path>
+<path d="M40 31h10"></path>
+<g>
+<path d="M50 31h0"></path>
+<path d="M240 31h0"></path>
+<path d="M50 31h10"></path>
+<g>
+<path d="M60 31h0"></path>
+<path d="M230 31h0"></path>
+<g>
+<path d="M60 31h0"></path>
+<path d="M168 31h0"></path>
+<path d="M60 31h20"></path>
+<g>
+<path d="M80 31h68"></path>
+</g>
+<path d="M148 31h20"></path>
+<path d="M60 31a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10"></path>
+<g>
+<path d="M80 51h0"></path>
+<path d="M148 51h0"></path>
+<path d="M80 51h20"></path>
+<g class="terminal">
+<path d="M100 51h0"></path>
+<path d="M128 51h0"></path>
+<rect x="100" y="40" width="28" height="22" rx="10" ry="10"></rect>
+<text x="114" y="55">-</text>
+</g>
+<path d="M128 51h20"></path>
+<path d="M80 51a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10"></path>
+<g class="terminal">
+<path d="M100 81h0"></path>
+<path d="M128 81h0"></path>
+<rect x="100" y="70" width="28" height="22" rx="10" ry="10"></rect>
+<text x="114" y="85">+</text>
+</g>
+<path d="M128 81a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10"></path>
+</g>
+<path d="M148 51a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10"></path>
+</g>
+<path d="M168 31h10"></path>
+<g class="non-terminal">
+<path d="M178 31h0"></path>
+<path d="M230 31h0"></path>
+<rect x="178" y="20" width="52" height="22"></rect>
+<text x="204" y="35">term</text>
+</g>
+</g>
+<path d="M230 31h10"></path>
+<path d="M60 31a10 10 0 0 0 -10 10v49a10 10 0 0 0 10 10"></path>
+<g>
+<path d="M60 100h170"></path>
+</g>
+<path d="M230 100a10 10 0 0 0 10 -10v-49a10 10 0 0 0 -10 -10"></path>
+</g>
+<path d="M240 31h10"></path>
+<path d="M 250 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path>
+</g>
+</svg>
+
 
 In Parlet, this can be defined like this:
 
     {{code="boolean_term_parser.rb:5-12"}}
 
-XXX: Show output of parsing a query???
+Parsing a query yields a parse tree like this:
+
+```
+BooleanTermParser.new.parse("the +cat in the -hat")
+#=> 
+{:query=>
+  [{:clause=>{:term=>"the"@0}},
+   {:clause=>{:operator=>"+"@4, :term=>"cat"@5}},
+   {:clause=>{:term=>"in"@9}},
+   {:clause=>{:term=>"the"@12}},
+   {:clause=>{:operator=>"-"@16, :term=>"hat"@17}}]}
+```
 
 Transforming this parse tree into an Elasticsearch query will be a little more complicated than the previous parser, where we could use `match` directly. Elasticsearch supports several combining queries (XXX: what are these called?) that allow you to combine simpler queries in complicated ways. In this case, we'll use the `bool` query. It looks like this:
 
@@ -316,9 +382,9 @@ Transforming this parse tree into an Elasticsearch query will be a little more c
 }
 ```
 
-As you can see, the input to a bool query is more queries. This is why you can be overwhelmed by `query`, `query`, `query` in a complicated Elasticsearch query.
+As you can see, the input to a bool query is more queries. This is why you can be overwhelmed by `query`, `query`, `query` when trying to understand the JSON of a complicated Elasticsearch query!
 
-In order to transform the parse tree into an Elasticsearch boolean query, lets defined a few classes.
+In order to transform the parse tree into an Elasticsearch bool query, lets defined a few classes.
 
 First `Operator` is a helper to convert `+`, `-`, or `nil` into `:must`, `:must_not`, or `:should`:
 
@@ -338,14 +404,28 @@ Using these classes, we can write a Parlet transformer to convert the parse tree
 
 Since a clause only has a single term, we can use Parslet's `subtree` to consume each `:clause` hash from the tree and convert them to `Clause` instances. Then `sequence` will consume the array of `Clause` objects to create the `BooleanTermQuery`.
 
-    parse_tree = BooleanTermParser.new.parse("cat in the hat")
-    query = BooleanTermTransformer.new.apply(parse_tree)
-    query.to_elasticsearch
-    # => XXX
+```ruby
+parse_tree = BooleanTermParser.new.parse("the +cat in the -hat")
+query = BooleanTermTransformer.new.apply(parse_tree)
+query.to_elasticsearch
+# =>
+{:query=>
+  {:bool=>
+    {:should=>
+      [{:match=>{:title=>{:query=>"the"}}},
+       {:match=>{:title=>{:query=>"in"}}},
+       {:match=>{:title=>{:query=>"the"}}}],
+     :must=>[{:match=>{:title=>{:query=>"cat"}}}],
+     :must_not=>[{:match=>{:title=>{:query=>"hat"}}}]}}}
+```
+
+Now we have a bool query ready to send to Elasticsearch!
+
+XXX try it out with some script! XXX
 
 ## Phrase queries
 
-Another important feature for a query parser is to be able to match phrases. In Elasticsearch, this is done with a [match_phrase]() query. The `match_phrase` query can be used as input for the `bool` query, just like the `BooleanTermQuery` used the `match` query. In our query language an example query might look like:
+Another important feature for a query parser is to be able to match phrases. In Elasticsearch, this is done with a [match_phrase](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query-phrase.html) query. The `match_phrase` query can be used as input for the `bool` query, just like the `BooleanTermQuery` used the `match` query. In our query language an example query might look like:
 
     "cat in the hat" -green +ham
 
