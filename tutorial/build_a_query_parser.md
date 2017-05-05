@@ -238,16 +238,18 @@ We need to capture the terms and the overall query.
 
 This produces a parse tree rooted at `:query` that contains a list of `:term` objects. The value of the `:term` is a `Parslet::Slice`, as we saw above.
 
-    TermParser.new.parse("cat in the hat")
-    #=>
-    {
-      :query => [
-        {:term => "cat"@0},
-        {:term => "in"@4},
-        {:term => "the"@7},
-        {:term => "hat"@11}
-      ]
-    }
+```ruby
+TermParser.new.parse("cat in the hat")
+# =>
+{
+  :query => [
+    {:term => "cat"@0},
+    {:term => "in"@4},
+    {:term => "the"@7},
+    {:term => "hat"@11}
+  ]
+}
+```
 
 Once you have defined your parse tree, you can create a [Parslet::Transform]() to convert the parse tree into an abstract syntax tree; or in our case, an object that knows how to convert itself to the Elasticsearch query DSL.
 
@@ -261,20 +263,22 @@ A Parlet::Transform defines rules for matching part of the parse tree and conver
 
 All together, we can now generate an Elasticsearch `match` query:
 
-    parse_tree = TermParser.new.parse("cat in the hat")
-    query = TermTransformer.new.apply(parse_tree)
-    query.to_elasticsearch
-    # =>
-    {
-      :query => {
-        :match => {
-          :title => {
-            :query => "cat in the hat",
-            :operator => "or"
-          }
-        }
+```ruby
+parse_tree = TermParser.new.parse("cat in the hat")
+query = TermTransformer.new.apply(parse_tree)
+query.to_elasticsearch
+# =>
+{
+  :query => {
+    :match => {
+      :title => {
+        :query => "cat in the hat",
+        :operator => "or"
       }
     }
+  }
+}
+```
 
 XXX NEED TO TALK ABOUT FIELDS! This example uses `title` hardcoded. Where'd that come from?
 
@@ -359,7 +363,7 @@ Parsing a query yields a parse tree like this:
 
 ```
 BooleanTermParser.new.parse("the +cat in the -hat")
-#=> 
+# =>
 {:query=>
   [{:clause=>{:term=>"the"@0}},
    {:clause=>{:operator=>"+"@4, :term=>"cat"@5}},
@@ -429,18 +433,131 @@ Another important feature for a query parser is to be able to match phrases. In 
 
     "cat in the hat" -green +ham
 
-The parse tree looks like this:
+<svg class="railroad-diagram" width="436" height="120" viewBox="0 0 436 120">
+<g transform="translate(.5 .5)">
+<path d="M 20 21 v 20 m 10 -20 v 20 m -10 -10 h 20.5"></path>
+<path d="M40 31h10"></path>
+<g>
+<path d="M50 31h0"></path>
+<path d="M386 31h0"></path>
+<path d="M50 31h10"></path>
+<g>
+<path d="M60 31h0"></path>
+<path d="M376 31h0"></path>
+<g>
+<path d="M60 31h0"></path>
+<path d="M168 31h0"></path>
+<path d="M60 31h20"></path>
+<g>
+<path d="M80 31h68"></path>
+</g>
+<path d="M148 31h20"></path>
+<path d="M60 31a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10"></path>
+<g>
+<path d="M80 51h0"></path>
+<path d="M148 51h0"></path>
+<path d="M80 51h20"></path>
+<g class="terminal">
+<path d="M100 51h0"></path>
+<path d="M128 51h0"></path>
+<rect x="100" y="40" width="28" height="22" rx="10" ry="10"></rect>
+<text x="114" y="55">-</text>
+</g>
+<path d="M128 51h20"></path>
+<path d="M80 51a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10"></path>
+<g class="terminal">
+<path d="M100 81h0"></path>
+<path d="M128 81h0"></path>
+<rect x="100" y="70" width="28" height="22" rx="10" ry="10"></rect>
+<text x="114" y="85">+</text>
+</g>
+<path d="M128 81a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10"></path>
+</g>
+<path d="M148 51a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10"></path>
+</g>
+<g>
+<path d="M168 31h0"></path>
+<path d="M376 31h0"></path>
+<path d="M168 31h20"></path>
+<g class="non-terminal">
+<path d="M188 31h58"></path>
+<path d="M298 31h58"></path>
+<rect x="246" y="20" width="52" height="22"></rect>
+<text x="272" y="35">term</text>
+</g>
+<path d="M356 31h20"></path>
+<path d="M168 31a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10"></path>
+<g>
+<path d="M188 61h0"></path>
+<path d="M356 61h0"></path>
+<g class="terminal">
+<path d="M188 61h0"></path>
+<path d="M216 61h0"></path>
+<rect x="188" y="50" width="28" height="22" rx="10" ry="10"></rect>
+<text x="202" y="65">"</text>
+</g>
+<path d="M216 61h10"></path>
+<path d="M226 61h10"></path>
+<g>
+<path d="M236 61h0"></path>
+<path d="M308 61h0"></path>
+<path d="M236 61h10"></path>
+<g class="non-terminal">
+<path d="M246 61h0"></path>
+<path d="M298 61h0"></path>
+<rect x="246" y="50" width="52" height="22"></rect>
+<text x="272" y="65">term</text>
+</g>
+<path d="M298 61h10"></path>
+<path d="M246 61a10 10 0 0 0 -10 10v0a10 10 0 0 0 10 10"></path>
+<g>
+<path d="M246 81h52"></path>
+</g>
+<path d="M298 81a10 10 0 0 0 10 -10v0a10 10 0 0 0 -10 -10"></path>
+</g>
+<path d="M308 61h10"></path>
+<path d="M318 61h10"></path>
+<g class="terminal">
+<path d="M328 61h0"></path>
+<path d="M356 61h0"></path>
+<rect x="328" y="50" width="28" height="22" rx="10" ry="10"></rect>
+<text x="342" y="65">"</text>
+</g>
+</g>
+<path d="M356 61a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10"></path>
+</g>
+</g>
+<path d="M376 31h10"></path>
+<path d="M60 31a10 10 0 0 0 -10 10v49a10 10 0 0 0 10 10"></path>
+<g>
+<path d="M60 100h316"></path>
+</g>
+<path d="M376 100a10 10 0 0 0 10 -10v-49a10 10 0 0 0 -10 -10"></path>
+</g>
+<path d="M386 31h10"></path>
+<path d="M 396 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path>
+</g>
+</svg>
 
+Building on the previous example, we can add rules for matching a phrase defined as a sequence of one or more terms surrounded by quotation marks.
 
+    {{code="phrase_parser.rb:4-13"}}
+
+The parse tree for the example query looks like this:
+
+```ruby
+PhraseParser.new.parse('"cat in the hat" -green +ham')
+# =>
+{:query=>
+  [{:clause=>
+     {:phrase=>
+       [{:term=>"cat"@1},
+        {:term=>"in"@5},
+        {:term=>"the"@8},
+        {:term=>"hat"@12}]}},
+   {:clause=>{:operator=>"-"@17, :term=>"green"@18}},
+   {:clause=>{:operator=>"+"@24, :term=>"ham"@25}}]}
 ```
-       Query
-         |
-       Clause
-       /    \
-  Operator  Term | Term*
-```
-
-    {{code="phrase_term_parser.rb:4-13"}}}
 
 To support phrases, the `Clause` object needs to know whether it is a term clause or a phrase clause. To do this, let's introduce separate classes for `TermClause` and `PhraseClause`:
 
@@ -450,13 +567,26 @@ Other than this change, the code stays quite similar to the boolean term query p
 
     {{code="phrase_parser.rb:44-112"}}
 
-With these classes defined, the PhraseTransformer can take the parse tree and transform it into a PhraseQuery:
+With these classes defined, `PhraseTransformer` can take the parse tree and transform it into a `PhraseQuery`:
 
     {{code="phrase_parser.rb:15-24"}}
 
 And here is the Elasticsearch query it generates:
 
-XXX
+```ruby
+parse_tree = PhraseParser.new.parse('"cat in the hat" -green +ham')
+query = PhraseTransformer.new.apply(parse_tree)
+query.to_elasticsearch
+# =>
+{:query=>
+  {:bool=>
+    {:should=>[{:match_phrase=>{:title=>{:query=>"cat in the hat"}}}],
+     :must=>[{:match=>{:title=>{:query=>"ham"}}}],
+     :must_not=>[{:match=>{:title=>{:query=>"green"}}}]}}}
+```
+
+XXX try it out with some script! XXX
+
 
 With these features, this is a respectable query parser. It supports a simple syntax that's easy to understand and hard to mess up, and more importantly, hard to abuse. From here, we could improve the query parser in many ways to make it more robust. For example, we could limit phrases to 4 terms or limit the total number of clauses to 10. Because we are parsing the query oursleves, we can make decisions about what gets sent to Elasticsearch in an intelligent way that won't cause broken queries.
 
