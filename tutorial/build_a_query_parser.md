@@ -173,6 +173,13 @@ Another way of parsing is to start with an analytic grammar. The [Parsing Expres
 
 [Parslet](http://kschiess.github.io/parslet/) is a Ruby library for generating PEG-style parsers. You define the rules of your grammar, and Parslet does the rest. XXX that's not totally true. "and Parslet creates a parser that returns a parse tree for input" XXX
 
+
+Parslet::Parser => Parses input, returns parse tree
+Parslet::Transformer => Transforms parse tree into Abstract Syntax Tree
+Your code => evaulate AST to produce a result
+
+XXX Make a diagram of the above?
+
 To define a parser with Parslet, subclass `Parslet::Parser` and define rules, which are called atoms, the building blocks of your grammar:
 
 ```ruby
