@@ -54,4 +54,18 @@ class PhraseTransformerTests < Minitest::Test
     assert(phrase_query.should_clauses.size, 1)
     assert("bar", phrase_query.should_clauses.first.phrase)
   end
+
+  def test_unexpected_clause
+    parsed_query = {
+      :query => [
+        {
+          :clause => {
+            :wut => [{:term => 'hi'}]
+          }
+        }
+      ]
+    }
+
+    assert_raises { PhraseTransformer.new.apply(parsed_query) }
+  end
 end

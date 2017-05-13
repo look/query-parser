@@ -18,6 +18,8 @@ class PhraseTransformer < Parslet::Transform
       TermClause.new(clause[:operator]&.to_s, clause[:term].to_s)
     elsif clause[:phrase]
       PhraseClause.new(clause[:operator]&.to_s, clause[:phrase].map { |p| p[:term].to_s }.join(" "))
+    else
+      raise "Unexpected clause type: '#{clause}'"
     end
   end
   rule(:query => sequence(:clauses)) { PhraseQuery.new(clauses) }
