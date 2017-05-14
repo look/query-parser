@@ -379,7 +379,7 @@ BooleanTermParser.new.parse("the +cat in the -hat")
    {:clause=>{:operator=>"-"@16, :term=>"hat"@17}}]}
 ```
 
-Transforming this parse tree into an Elasticsearch query will be a little more complicated than the previous parser, where we could use `match` directly. Elasticsearch supports several combining queries (XXX: what are these called?) that allow you to combine simpler queries in complicated ways. In this case, we'll use the `bool` query. It looks like this:
+Transforming this parse tree into the Elasticsearch query DSL will be a little more complicated than the previous parser, where we could use `match` directly. Elasticsearch supports several combining queries (XXX: what are these called?) that allow you to combine simpler queries in complicated ways. In this case, we'll use the `bool` query. It looks like this:
 
 ```json
 {
@@ -405,7 +405,7 @@ Next, `Clause` holds an `Operator` and a term (which is a `String`):
 
     {{code="boolean_term_parser.rb:19-26"}}
 
-Then, `BooleanTermQuery` take an Array of clauses and segments them into `should`, `must`, and `must_not` for conversion to an Elasticsearch query hash:
+Then, `BooleanTermQuery` takes an `Array` of clauses and segments them into `should`, `must`, and `must_not` for conversion to the Elasticsearch query DSL:
 
     {{code="boolean_term_parser.rb:28-69"}}
 
