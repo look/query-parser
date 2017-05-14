@@ -37,6 +37,7 @@ task :build do
     replacement = %Q(```ruby\n#{lines.join}````)
   end
 
+  # TODO: Subclass CommonMarker::HtmlRenderer to add syntax highlighting with rouge
   html = CommonMarker.render_html(tutorial)
 
   # TODO: Figure out a better way to create a layout for a markdown document
