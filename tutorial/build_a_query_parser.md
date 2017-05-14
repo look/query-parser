@@ -568,15 +568,15 @@ PhraseParser.new.parse('"cat in the hat" -green +ham')
 
 To support phrases, the `Clause` object needs to know whether it is a term clause or a phrase clause. To do this, let's introduce separate classes for `TermClause` and `PhraseClause`:
 
-    {{code="phrase_parser.rb:26-42"}}}
+    {{code="phrase_parser.rb:28-44"}}
 
 Other than this change, the code stays quite similar to the boolean term query parser. The Phrase query now needs to operate on the clause level rather than the term level, and later when generating the `bool` queries, choose `match` or `match_phrase` depening on the type.
 
-    {{code="phrase_parser.rb:44-112"}}
+    {{code="phrase_parser.rb:46-114"}}
 
 With these classes defined, `PhraseTransformer` can take the parse tree and transform it into a `PhraseQuery`:
 
-    {{code="phrase_parser.rb:15-24"}}
+    {{code="phrase_parser.rb:15-26"}}
 
 And here is the Elasticsearch query it generates:
 
