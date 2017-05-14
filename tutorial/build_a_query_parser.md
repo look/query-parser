@@ -599,26 +599,31 @@ With these features, this is a respectable query parser. It supports a simple sy
 
 ## Going beyond generic query parsers: Adding heuristics
 
-So far, what we've built has been aimed at preventing harmful queries -- and providing a simple query user experience. However, another benefit of building your own query parser is that since it is specific to your application, you can tailor it to your domain.
+So far, what we've built has been aimed at providing a simple user experience -- and preventing harmful queries. However, another benefit of building your own query parser is that it is specific to your application, so you can tailor it to your domain.
 
-For example, let's say we are building search for a database of books. We know a lot about the data, and can develop heuristics for users search input. Let's say that we know all publication dates for books in the catalog are in the range 1950 - present. Therefore, queries like "50s" are unabiguous. We can expand these queries to do a date range query for books published between 1950-1960. Since we control the parser, we can also search for the text the user entered literally.
+For example, let's say we are building search for a database of books. We know a lot about the data, and can develop heuristics for users search input. Let's say that we know all publication dates for books in the catalog are from the twentith and early twenty-first century. We can turn a search term like "1970" or "1970s" into a date range query for the dates 1970 - 1979.
 
-An example search might look like this:
-
-    cats 1970s
-
-The query we want to generate is:
+For the search `cats 1970s` the Elasticsearch query DSL we want to generate is:
 
 ```json
 {
   "query": {
     "bool": {
       "should": [
-        "match": {
-          "title": "cats"
+        {
+          "match": {
+            "title": {
+              "query": "cats"
+            }
+          }
         },
-        "range": {
-          XXX
+        {
+          "range": {
+            "publication_year": {
+              "gte": 1970,
+              "lte": 1979
+            }
+          }
         }
       ]
     }
@@ -626,6 +631,229 @@ The query we want to generate is:
 }
 ```
 
+To represent this in our grammar, we'll add a new clause type called `decade`.
+
+<svg class="railroad-diagram" width="436" height="139" viewBox="0 0 436 139">
+<g transform="translate(.5 .5)">
+<path d="M 20 21 v 20 m 10 -20 v 20 m -10 -10 h 20.5"></path>
+<path d="M40 31h10"></path>
+<g>
+<path d="M50 31h0"></path>
+<path d="M386 31h0"></path>
+<path d="M50 31h10"></path>
+<g>
+<path d="M60 31h0"></path>
+<path d="M376 31h0"></path>
+<g>
+<path d="M60 31h0"></path>
+<path d="M168 31h0"></path>
+<path d="M60 31h20"></path>
+<g>
+<path d="M80 31h68"></path>
+</g>
+<path d="M148 31h20"></path>
+<path d="M60 31a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10"></path>
+<g>
+<path d="M80 51h0"></path>
+<path d="M148 51h0"></path>
+<path d="M80 51h20"></path>
+<g class="terminal">
+<path d="M100 51h0"></path>
+<path d="M128 51h0"></path>
+<rect x="100" y="40" width="28" height="22" rx="10" ry="10"></rect>
+<text x="114" y="55">-</text>
+</g>
+<path d="M128 51h20"></path>
+<path d="M80 51a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10"></path>
+<g class="terminal">
+<path d="M100 81h0"></path>
+<path d="M128 81h0"></path>
+<rect x="100" y="70" width="28" height="22" rx="10" ry="10"></rect>
+<text x="114" y="85">+</text>
+</g>
+<path d="M128 81a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10"></path>
+</g>
+<path d="M148 51a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10"></path>
+</g>
+<g>
+<path d="M168 31h0"></path>
+<path d="M376 31h0"></path>
+<path d="M168 31h20"></path>
+<g class="non-terminal">
+<path d="M188 31h50"></path>
+<path d="M306 31h50"></path>
+<rect x="238" y="20" width="68" height="22"></rect>
+<text x="272" y="35">decade</text>
+</g>
+<path d="M356 31h20"></path>
+<path d="M168 31a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10"></path>
+<g class="non-terminal">
+<path d="M188 61h58"></path>
+<path d="M298 61h58"></path>
+<rect x="246" y="50" width="52" height="22"></rect>
+<text x="272" y="65">term</text>
+</g>
+<path d="M356 61a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10"></path>
+<path d="M168 31a10 10 0 0 1 10 10v40a10 10 0 0 0 10 10"></path>
+<g>
+<path d="M188 91h0"></path>
+<path d="M356 91h0"></path>
+<g class="terminal">
+<path d="M188 91h0"></path>
+<path d="M216 91h0"></path>
+<rect x="188" y="80" width="28" height="22" rx="10" ry="10"></rect>
+<text x="202" y="95">"</text>
+</g>
+<path d="M216 91h10"></path>
+<path d="M226 91h10"></path>
+<g>
+<path d="M236 91h0"></path>
+<path d="M308 91h0"></path>
+<path d="M236 91h10"></path>
+<g class="non-terminal">
+<path d="M246 91h0"></path>
+<path d="M298 91h0"></path>
+<rect x="246" y="80" width="52" height="22"></rect>
+<text x="272" y="95">term</text>
+</g>
+<path d="M298 91h10"></path>
+<path d="M246 91a10 10 0 0 0 -10 10v0a10 10 0 0 0 10 10"></path>
+<g>
+<path d="M246 111h52"></path>
+</g>
+<path d="M298 111a10 10 0 0 0 10 -10v0a10 10 0 0 0 -10 -10"></path>
+</g>
+<path d="M308 91h10"></path>
+<path d="M318 91h10"></path>
+<g class="terminal">
+<path d="M328 91h0"></path>
+<path d="M356 91h0"></path>
+<rect x="328" y="80" width="28" height="22" rx="10" ry="10"></rect>
+<text x="342" y="95">"</text>
+</g>
+</g>
+<path d="M356 91a10 10 0 0 0 10 -10v-40a10 10 0 0 1 10 -10"></path>
+</g>
+</g>
+<path d="M376 31h10"></path>
+<path d="M60 31a10 10 0 0 0 -10 10v68a10 10 0 0 0 10 10"></path>
+<g>
+<path d="M60 119h316"></path>
+</g>
+<path d="M376 119a10 10 0 0 0 10 -10v-68a10 10 0 0 0 -10 -10"></path>
+</g>
+<path d="M386 31h10"></path>
+<path d="M 396 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path>
+</g>
+</svg>
+
+Where `decade` is defined as:
+
+<svg class="railroad-diagram" width="412" height="101" viewBox="0 0 412 101">
+<g transform="translate(.5 .5)">
+<path d="M 20 30 v 20 m 10 -20 v 20 m -10 -10 h 20.5"></path>
+<path d="M40 40h10"></path>
+<g>
+<path d="M50 40h0"></path>
+<path d="M362 40h0"></path>
+<g>
+<path d="M50 40h0"></path>
+<path d="M166 40h0"></path>
+<path d="M50 40h20"></path>
+<g>
+<path d="M70 40h0"></path>
+<path d="M146 40h0"></path>
+<g class="terminal">
+<path d="M70 40h0"></path>
+<path d="M98 40h0"></path>
+<rect x="70" y="29" width="28" height="22" rx="10" ry="10"></rect>
+<text x="84" y="44">1</text>
+</g>
+<path d="M98 40h10"></path>
+<path d="M108 40h10"></path>
+<g class="terminal">
+<path d="M118 40h0"></path>
+<path d="M146 40h0"></path>
+<rect x="118" y="29" width="28" height="22" rx="10" ry="10"></rect>
+<text x="132" y="44">9</text>
+</g>
+</g>
+<path d="M146 40h20"></path>
+<path d="M50 40a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10"></path>
+<g>
+<path d="M70 70h0"></path>
+<path d="M146 70h0"></path>
+<g class="terminal">
+<path d="M70 70h0"></path>
+<path d="M98 70h0"></path>
+<rect x="70" y="59" width="28" height="22" rx="10" ry="10"></rect>
+<text x="84" y="74">2</text>
+</g>
+<path d="M98 70h10"></path>
+<path d="M108 70h10"></path>
+<g class="terminal">
+<path d="M118 70h0"></path>
+<path d="M146 70h0"></path>
+<rect x="118" y="59" width="28" height="22" rx="10" ry="10"></rect>
+<text x="132" y="74">0</text>
+</g>
+</g>
+<path d="M146 70a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10"></path>
+</g>
+<path d="M166 40h10"></path>
+<g class="terminal">
+<path d="M176 40h0"></path>
+<path d="M236 40h0"></path>
+<rect x="176" y="29" width="60" height="22" rx="10" ry="10"></rect>
+<text x="206" y="44">&#91;0-9&#93;</text>
+</g>
+<path d="M236 40h10"></path>
+<path d="M246 40h10"></path>
+<g class="terminal">
+<path d="M256 40h0"></path>
+<path d="M284 40h0"></path>
+<rect x="256" y="29" width="28" height="22" rx="10" ry="10"></rect>
+<text x="270" y="44">0</text>
+</g>
+<path d="M284 40h10"></path>
+<g>
+<path d="M294 40h0"></path>
+<path d="M362 40h0"></path>
+<path d="M294 40a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10"></path>
+<g>
+<path d="M314 20h28"></path>
+</g>
+<path d="M342 20a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10"></path>
+<path d="M294 40h20"></path>
+<g class="terminal">
+<path d="M314 40h0"></path>
+<path d="M342 40h0"></path>
+<rect x="314" y="29" width="28" height="22" rx="10" ry="10"></rect>
+<text x="328" y="44">s</text>
+</g>
+<path d="M342 40h20"></path>
+</g>
+</g>
+<path d="M362 40h10"></path>
+<path d="M 372 40 h 20 m -10 -10 v 20 m 10 -20 v 20"></path>
+</g>
+</svg>
+
+To implement this, we add the new `decade` rule to the parser and use it in the `clause` rule.
+
+    {{code="heuristic_parser.rb:4-18"}}
+
+A PEG parser always takes the first alternative, so we need to make `decade` match before `term`, because a `decade` is always a valid `term`. If we didn't do this, the `decade` rule would never match.
+
+For the transformer, we define a `DateRangeClause` class that takes a number and converts it into a start and end date:
+
+    {{code="heuristic_parser.rb:51-59"}}
+
+Finally, we add `date_range` method that converts a `DateRangeClause` into the Elasticsearch query DSL.
+
+    {{code="heuristic_parser.rb:132-141"}}
+
+Now, thanks to Parslet, we have created a simple query parser that's purpose-built for our application. We fully control the syntax and Elasticsearch queries it makes, and we can add more heuristics that make sense for our application, but would never be part of a general-purpose query parser.
 
 ## Error handling
 
