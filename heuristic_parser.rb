@@ -2,7 +2,11 @@ require 'parslet'
 require_relative 'operator'
 
 class HeuristicParser < Parslet::Parser
-  rule(:decade) { ((str('1') >> str('9') | str('2') >> str('0')) >> match('\d') >> str('0')).as(:decade) >> str('s').maybe }
+  rule(:decade) do
+    ((str('1') >> str('9') |
+      str('2') >> str('0')) >>
+     match('\d') >> str('0')).as(:decade) >> str('s').maybe
+  end
   rule(:term) { match('[a-zA-Z0-9]').repeat(1).as(:term) }
   rule(:quote) { str('"') }
   rule(:operator) { (str('+') | str('-')).as(:operator) }
