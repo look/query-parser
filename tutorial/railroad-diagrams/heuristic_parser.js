@@ -1,0 +1,23 @@
+Diagram(
+    OneOrMore(
+        Sequence(
+            Optional(
+                Choice(0,
+                       Terminal('-'),
+                       Terminal('+')
+                      ),
+                'skip'),
+            Choice(0,
+                   NonTerminal('decade'),
+                   NonTerminal('term'),
+                   Sequence(
+                       Terminal('"'),
+                       OneOrMore(
+                           NonTerminal('term')
+                       ),
+                       Terminal('"')
+                   )
+                  )
+        )
+    )
+)
