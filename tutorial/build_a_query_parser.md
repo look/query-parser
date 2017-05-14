@@ -203,7 +203,7 @@ Now that we have a parser, we can instantiate it and parse a string:
 
 ```
 MyParser.new.parse("hello parslet")
-# => "hello world"@0
+# => "hello parslet"@0
 ```
 
 It doesn't look like much! But notice the `@0`. The result is a [Parslet::Slice](http://www.rubydoc.info/github/kschiess/parslet/Parslet/Slice), and `@0` indicates where in the input string the match occurred. This is really useful for more complicated parsers.
