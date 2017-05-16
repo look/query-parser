@@ -12,7 +12,9 @@ class BooleanTermParser < Parslet::Parser
 end
 
 class BooleanTermTransformer < Parslet::Transform
-  rule(:clause => subtree(:clause)) { Clause.new(clause[:operator]&.to_s, clause[:term].to_s) } # TODO: strict get in case subtree overmatches?
+  rule(:clause => subtree(:clause)) do
+    Clause.new(clause[:operator]&.to_s, clause[:term].to_s)
+  end
   rule(:query => sequence(:clauses)) { BooleanTermQuery.new(clauses) }
 end
 

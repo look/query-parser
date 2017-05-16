@@ -1,34 +1,31 @@
 # Build a query parser
-
 By [Luke Francl](http://www.recursion.org) ([look@recursion.org](mailto:look@recursion.org)), XXX 2017
 
-More than once in my career, I've been part of a project that needed search. Usually somebody[1] finds the search engine's built-in query parser, wires it up and that is that. It seems like a good idea and saves time upfront. But in the long run, it's better to write your own query parser.
+## DRAFT Please do not distribute
+
+More than a few times in my career, I've been part of a project that needed search. A Lucene-based search engine fits the bill. Usually somebody<sup>[[1](#fn1)]</sup> finds the search engine's built-in query parser, wires it up and that is that. It seems like a good idea and saves time up-front. But in the long run, it's better to write your own query parser.
 
 ## Problems with generic query parsers
 
-Most search engines have a very powerful query parser built in, which can take a string and convert it to the underlying query objects. I'm most familar with Lucene's query parser which is exposed by [Solr](https://wiki.apache.org/solr/SolrQuerySyntax) and [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html), but other search APIs provide similar functionality (for example, [Google Cloud Platform's search API](https://cloud.google.com/appengine/docs/standard/python/search/query_strings)).
+Most search engines have a very powerful query parser built in, which can take a string and convert it to the underlying query objects. I'm most familiar with Lucene's query parser which is exposed by [Solr](https://wiki.apache.org/solr/SolrQuerySyntax) and [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html), but other search APIs provide similar functionality (for example, [Google Cloud Platform's search API](https://cloud.google.com/appengine/docs/standard/python/search/query_strings)).
 
 Exposing this interface directly to users has problems.
 
-### User input may contain special charaters
+### User input may contain special characters
 
-The built-in query parser has its own syntax, which users may not understand. For example, Elasticsearch's `query_string` syntax reserves `+`, `-`, `=`, `&&`, `||`, `>`, `<`, `!`, `(`, `)`, `{`, `}`, `[`, `]`, `^`, `\"`, `~`, `*`, `?`, `:`, `\`, and `/`
+The built-in query parser has its own syntax, which users may not understand. For example, [Elasticsearch's `query_string` syntax reserves](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_reserved_characters) `+`, `-`, `=`, `&&`, `||`, `>`, `<`, `!`, `(`, `)`, `{`, `}`, `[`, `]`, `^`, `\"`, `~`, `*`, `?`, `:`, `\`, and `/`.
 
-Using the syntax incorrectly will either trigger an error or lead to unexpected results.
+Using the syntax incorrectly will either trigger an error or lead to unexpected results. For example, the user query `title:cat "cat:hat"` should be escaped as `title\:cat "cat:hat"`. Escaping characters in a query string with regular expressions ranges from difficult to impossible.
 
-    title\:cat "cat:hat"
-
-Escaping characters with regular expressions ranges from difficult to impossible (for example, ensuring balanced quotation marks).
-
-Also, some characters can't be escaped:
+Also, some characters [can't be escaped](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_reserved_characters):
 
 > `<` and `>` can’t be escaped at all. The only way to prevent them from attempting to create a range query is to remove them from the query string entirely.
 
-### Intentional or unintential advanced query features
+### Intentionally or unintentionally triggering advanced query features
 
-Related to the above point, users can intentionally or unintentionally trigger advanced query features. For example, limiting a search term to a single field with `field_name:term` or boosting a term with `term^10`. The can range from confusing to malicous.
+Related to the above point, users can intentionally or unintentionally trigger advanced query features. For example, limiting a search term to a single field with `field_name:term` or boosting a term with `term^10`. The results range from confusing to malicious.
 
-These operators can cause **very** expensive queries. In Lucene-based tools, [certain queries are very expensive](https://lucene.apache.org/core/6_5_0/core/org/apache/lucene/search/AutomatonQuery.html), because they require enumerating terms from the term dctionary in order to generate the query. A query with wildcards (especially a leading wildcard!) or regular expression will do this:
+These operators can cause **very** expensive queries. In Lucene-based tools, [certain queries are very expensive](https://lucene.apache.org/core/6_5_0/core/org/apache/lucene/search/AutomatonQuery.html), because they require enumerating terms from the term dictionary in order to generate the query. A query with wildcards (especially a leading wildcard!) or regular expression [will do this](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_regular_expressions):
 
 > A query string such as the following would force Elasticsearch to visit every term in the index:
 >
@@ -36,7 +33,7 @@ These operators can cause **very** expensive queries. In Lucene-based tools, [ce
 >
 > Use with caution!
 
-Range queries may seem harmless, but they also have this problem (beware range queries on wide ranges of high resolution data!).
+Range queries may seem harmless, but they [also have this problem](http://george-stathis.com/2013/10/18/setting-the-booleanquery-maxclausecount-in-elasticsearch/) (beware range queries on wide ranges of high resolution data!).
 
 ### Huge number of terms
 
@@ -44,7 +41,7 @@ Passing a user input directly to the query parser can be dangerous for more pros
 
 ## Avoiding the foot gun
 
-Lucene 4.7 added a new `SimpleQueryParser` that improved things quite a bit. In Elasticsearch, this is available as `simple_query_string` in the search DSL. Unlike `query_string`, `simple_quer_string` is designed to be exposed to end users and reduces the complexity of queries that can be created.
+Lucene 4.7 added a new `SimpleQueryParser` that improved things quite a bit. In Elasticsearch, [this is available as `simple_query_string`](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html) in the search DSL. Unlike `query_string`, `simple_query_string` is designed to be exposed to end users and reduces the complexity of queries that can be created.
 
 But even `SimpleQueryParser` is quite powerful in ways you may not want. [Users can specify](http://lucene.apache.org/core/6_5_0/queryparser/org/apache/lucene/queryparser/simple/SimpleQueryParser.html):
 
@@ -86,7 +83,7 @@ Our first parser will be extremely limited. Given input like "cat in the hat" it
       }
     }
 
-This is a [match]() query, which does not interpret its input. You may notice that...we could just take the user input and put it in JSON structure. But we need to start somewhere!
+This is a [match](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query.html) query, which does not interpret its input. You may notice that...we could just take the user input and put it in JSON structure. But we need to start somewhere!
 
 ## Defining a grammar
 
@@ -97,7 +94,7 @@ First, let's define a grammar for our simple query language using [Backus–Naur
 <term> ::= <alphanumeric> | <term>
 ```
 
-Where `alphanumeric` is defined as the characters `[a-zA-Z0-9]`. The defintions are recursive to allow repetition. A [railroad diagram](https://en.wikipedia.org/wiki/Syntax_diagram) helps visualize the syntax.
+Where `alphanumeric` is defined as the characters `[a-zA-Z0-9]`. The definitions are recursive to allow repetition. A [railroad diagram](https://en.wikipedia.org/wiki/Syntax_diagram) helps visualize the syntax.
 
 ### Query
 
@@ -160,25 +157,19 @@ Where `alphanumeric` is defined as the characters `[a-zA-Z0-9]`. The defintions 
 
 ## Defining a grammar with Parslet
 
-BNF defines the rules for a genative grammar for a context-free language, which means it can be ambiguous. Parsing algorithms transform the grammar into a parser that can produce a parse tree, with special cases to handle the ambiguity of a context-free grammar. 
+BNF defines the rules for a generative grammar for a context-free language, which means it can be ambiguous. Parsing algorithms transform the grammar into a parser that can produce a parse tree, with special cases to handle the ambiguity of a context-free grammar. 
 
 Another way of parsing is to start with an analytic grammar. The [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_grammar) (PEG) looks like BNF, but the choice operator always picks the first match. PEGs cannot be ambiguous.
 
+[Parslet](http://kschiess.github.io/parslet/) is a Ruby library for generating PEG-style parsers. You define the rules of your grammar, and Parslet creates a parser that returns a parse tree for input. Then you define a transformer that takes the parse tree and converts it to an abstract syntax tree (AST). Finally, your code evaluates the AST to produce a result.
 
-> Though there is a tremendous body of literature on parsing algorithms, most of these algorithms assume that the language to be parsed is initially described by means of a generative formal grammar, and that the goal is to transform this generative grammar into a working parser. Strictly speaking, a generative grammar does not in any way correspond to the algorithm used to parse a language, and various algorithms have different restrictions on the form of production rules that are considered well-formed.
->
-> An alternative approach is to formalize the language in terms of an analytic grammar in the first place, which more directly corresponds to the structure and semantics of a parser for the language. Examples of analytic grammar formalisms include the following:
->
-> https://en.wikipedia.org/wiki/Formal_grammar#Analytic_grammars
-
-[Parslet](http://kschiess.github.io/parslet/) is a Ruby library for generating PEG-style parsers. You define the rules of your grammar, and Parslet does the rest. XXX that's not totally true. "and Parslet creates a parser that returns a parse tree for input" XXX
-
-
+```
 Parslet::Parser => Parses input, returns parse tree
 Parslet::Transformer => Transforms parse tree into Abstract Syntax Tree
-Your code => evaulate AST to produce a result
+Your code => evaluate AST to produce a result
+```
 
-XXX Make a diagram of the above?
+**XXX** Make a diagram of the above?
 
 To define a parser with Parslet, subclass `Parslet::Parser` and define rules, which are called atoms, the building blocks of your grammar:
 
@@ -189,13 +180,26 @@ class MyParser < Parslet::Parser
 
   rule(:space) { match('\s').repeat(1) }
 
-  # >> means "followed by"; maybe is equavalent to repeat(0, 1)
+  # >> means "followed by"; maybe is equivalent to repeat(0, 1)
   rule(:query) { (term >> space.maybe).repeat }
 
   # The root tells Parslet where to start parsing the input
   root(:query)
 end
 ```
+<div class="aside">
+<h3>Aside: Using Parslet from the console</h3>
+
+When you want to quickly test out a Parslet parser, you can `include Parslet` in `irb` to add its API:
+
+```ruby
+require 'parslet'
+include Parslet
+
+match('\d').repeat(1).parse("1234")
+ => "1234"@0
+ ```
+</div>
 
 Notice how rules can be used by other rules. They plain old Ruby objects.
 
@@ -258,9 +262,9 @@ TermParser.new.parse("cat in the hat")
 }
 ```
 
-Once you have defined your parse tree, you can create a [Parslet::Transform]() to convert the parse tree into an abstract syntax tree; or in our case, an object that knows how to convert itself to the Elasticsearch query DSL.
+Once you have defined your parse tree, you can create a [Parslet::Transform](http://www.rubydoc.info/gems/parslet/Parslet/Transform) to convert the parse tree into an abstract syntax tree; or in our case, an object that knows how to convert itself to the Elasticsearch query DSL.
 
-A Parlet::Transform defines rules for matching part of the parse tree and converting it to something else. Walking up from the leaf nodes, the entire tree is consumed. For this parse tree, the transformation is simple: match a `:term` Hash and convert it to a String, then match an array of terms and instantiate a `TermQuery` object:
+A `Parslet::Transform` defines rules for matching part of the parse tree and converting it to something else. Walking up from the leaf nodes, the entire tree is consumed. For this parse tree, the transformation is simple: match a `:term` Hash and convert it to a String, then match an array of terms and instantiate a `TermQuery` object:
 
     {{code="term_parser.rb:10-14"}}
 
@@ -287,15 +291,15 @@ query.to_elasticsearch
 }
 ```
 
-XXX NEED TO TALK ABOUT FIELDS! This example uses `title` hardcoded. Where'd that come from?
+**XXX** NEED TO TALK ABOUT FIELDS! This example uses `title` hard-coded. Where'd that come from?
 
 OK, that was fun, but this is a a roundabout way of generating a simple Elasticsearch query. So far, the code could be replaced with a simple `match` query to Elasticsearch. But we can build up from here.
 
 ## Boolean queries: should, must, and must not
 
-Unlike the boolean logic you may be familar with, Lucene-based systems define three types of boolean clauses: **should**, which means that a clause ought to match, but does not reject documents that don't; **must**, which requires documents match the clause; and **must not**, which requires documents do not match the clause. These correspond to "or", "and", and "not", respectively.
+Unlike the boolean logic you may be familiar with, Lucene-based systems define three types of boolean clauses: **should**, which means that a clause ought to match, but does not reject documents that don't; **must**, which requires documents match the clause; and **must not**, which requires documents do not match the clause. These correspond to "or", "and", and "not", respectively.
 
-In a query language, that might look like this: "cat -hat +cradle". I like using `+` and `-` for this rather than `AND` and `OR` because I think it looks better and users don't have to worry about dangling clauses (for example, "foo AND").
+In a query language, that might look like this: `cat -hat +cradle`. I like using `+` and `-` for this rather than `AND` and `OR` because I think it looks better and users don't have to worry about dangling clauses (for example, `foo AND`).
 
 To support boolean logic, we'll add a new entity to our parse tree: a clause. A clause has an optional operator (`+` or `-`) and a term.
 
@@ -379,23 +383,23 @@ BooleanTermParser.new.parse("the +cat in the -hat")
    {:clause=>{:operator=>"-"@16, :term=>"hat"@17}}]}
 ```
 
-Transforming this parse tree into the Elasticsearch query DSL will be a little more complicated than the previous parser, where we could use `match` directly. Elasticsearch supports several combining queries (XXX: what are these called?) that allow you to combine simpler queries in complicated ways. In this case, we'll use the `bool` query. It looks like this:
+Transforming this parse tree into the Elasticsearch query DSL will be a little more complicated than the previous parser, where we could use `match` directly. Elasticsearch supports several [compound queries](https://www.elastic.co/guide/en/elasticsearch/reference/current/compound-queries.html) that allow you to combine simpler queries in complicated ways. For our parser, we'll use the [`bool` query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html). It looks like this:
 
 ```json
 {
   "query": {
     "bool": {
-      "should": [ list of queries that _should_ match (OR) ],
-      "must": [ list of queries that _must_ match (AND)],
-      "must_not": [ list of queries that _must not_ match (NOT)]
+      "should": [ list of queries that SHOULD match (OR) ],
+      "must": [ list of queries that MUST match (AND)],
+      "must_not": [ list of queries that MUST NOT match (NOT)]
     }
   }
 }
 ```
 
-As you can see, the input to a bool query is more queries. This is why you can be overwhelmed by `query`, `query`, `query` when trying to understand the JSON of a complicated Elasticsearch query!
+Yes, the input to a `bool` query is more queries. This is why you can be overwhelmed by `query`, `query`, `query` when trying to understand the JSON of a complicated Elasticsearch query!
 
-In order to transform the parse tree into an Elasticsearch bool query, lets defined a few classes.
+In order to transform the parse tree into an Elasticsearch bool query, let's defined a few classes.
 
 First `Operator` is a helper to convert `+`, `-`, or `nil` into `:must`, `:must_not`, or `:should`:
 
@@ -403,20 +407,20 @@ First `Operator` is a helper to convert `+`, `-`, or `nil` into `:must`, `:must_
 
 Next, `Clause` holds an `Operator` and a term (which is a `String`):
 
-    {{code="boolean_term_parser.rb:19-26"}}
+    {{code="boolean_term_parser.rb:21-28"}}
 
 Then, `BooleanTermQuery` takes an `Array` of clauses and segments them into `should`, `must`, and `must_not` for conversion to the Elasticsearch query DSL:
 
-    {{code="boolean_term_parser.rb:28-69"}}
+    {{code="boolean_term_parser.rb:30-71"}}
 
 Using these classes, we can write a Parlet transformer to convert the parse tree to a `BooleanTermQuery`:
 
-    {{code="boolean_term_parser.rb:14-17"}}
+    {{code="boolean_term_parser.rb:14-19"}}
 
 Since a clause only has a single term, we can use Parslet's `subtree` to consume each `:clause` hash from the tree and convert them to `Clause` instances. Then `sequence` will consume the array of `Clause` objects to create the `BooleanTermQuery`.
 
 ```ruby
-parse_tree = BooleanTermParser.new.parse("the +cat in the -hat")
+parse_tree = BooleanTermParser.new.parse('the +cat in the -hat')
 query = BooleanTermTransformer.new.apply(parse_tree)
 query.to_elasticsearch
 # =>
@@ -432,7 +436,7 @@ query.to_elasticsearch
 
 Now we have a bool query ready to send to Elasticsearch!
 
-XXX try it out with some script! XXX
+**XXX** Add a script that readers can run to execute queries?
 
 ## Phrase queries
 
@@ -570,7 +574,7 @@ To support phrases, the `Clause` object needs to know whether it is a term claus
 
     {{code="phrase_parser.rb:28-44"}}
 
-Other than this change, the code stays quite similar to the boolean term query parser. The Phrase query now needs to operate on the clause level rather than the term level, and later when generating the `bool` queries, choose `match` or `match_phrase` depening on the type.
+Other than this change, the code stays quite similar to the boolean term query parser. The Phrase query now needs to operate on the clause level rather than the term level, and later when generating the `bool` queries, choose `match` or `match_phrase` depending on the type.
 
     {{code="phrase_parser.rb:46-114"}}
 
@@ -592,16 +596,16 @@ query.to_elasticsearch
      :must_not=>[{:match=>{:title=>{:query=>"green"}}}]}}}
 ```
 
-XXX try it out with some script! XXX
+**XXX** Again, give readers a script they can use to execute queries
 
 
-With these features, this is a respectable query parser. It supports a simple syntax that's easy to understand and hard to mess up, and more importantly, hard to abuse. From here, we could improve the query parser in many ways to make it more robust. For example, we could limit phrases to 4 terms or limit the total number of clauses to 10. Because we are parsing the query oursleves, we can make decisions about what gets sent to Elasticsearch in an intelligent way that won't cause broken queries.
+With these features, this is a respectable query parser. It supports a simple syntax that's easy to understand and hard to mess up, and more importantly, hard to abuse. From here, we could improve the query parser in many ways to make it more robust. For example, we could limit phrases to 4 terms or limit the total number of clauses to 10. Because we are parsing the query ourselves, we can make decisions about what gets sent to Elasticsearch in an intelligent way that won't cause broken queries.
 
 ## Going beyond generic query parsers: Adding heuristics
 
 So far, what we've built has been aimed at providing a simple user experience -- and preventing harmful queries. However, another benefit of building your own query parser is that it is specific to your application, so you can tailor it to your domain.
 
-For example, let's say we are building search for a database of books. We know a lot about the data, and can develop heuristics for users search input. Let's say that we know all publication dates for books in the catalog are from the twentith and early twenty-first century. We can turn a search term like "1970" or "1970s" into a date range query for the dates 1970 - 1979.
+For example, let's say we are building search for a database of books. We know a lot about the data, and can develop heuristics for users search input. Let's say that we know all publication dates for books in the catalog are from the twentieth and early twenty-first century. We can turn a search term like "1970" or "1970s" into a date range query for the dates 1970 - 1979.
 
 For the search `cats 1970s` the Elasticsearch query DSL we want to generate is:
 
@@ -847,51 +851,30 @@ A PEG parser always takes the first alternative, so we need to make `decade` mat
 
 For the transformer, we define a `DateRangeClause` class that takes a number and converts it into a start and end date:
 
-    {{code="heuristic_parser.rb:51-59"}}
+    {{code="heuristic_parser.rb:53-61"}}
 
 Finally, we add `date_range` method that converts a `DateRangeClause` into the Elasticsearch query DSL.
 
-    {{code="heuristic_parser.rb:132-141"}}
+    {{code="heuristic_parser.rb:134-143"}}
 
 Now, thanks to Parslet, we have created a simple query parser that's purpose-built for our application. We fully control the syntax and Elasticsearch queries it makes, and we can add more heuristics that make sense for our application, but would never be part of a general-purpose query parser.
 
-## Error handling
-
-???
-
-## Source code
-
-XXX: Something about where to find the source code, how it's organized?
-
-## Appendix 1: Using Parslet from the console
-
-```ruby
-require 'parslet'
-include Parslet
-
-match('\d').repeat(1).parse("1234")
- => "1234"@0
- ```
-
 ## Resources
+
+**XXX:** Something about where to find the source code, how it's organized? Could also be an aside.
 
 The parslet tutorial is an excellent resource.
 
-Talk about Parslet:
-https://www.youtube.com/watch?v=ET_POMJNWNs
+Talk about Parslet: https://www.youtube.com/watch?v=ET_POMJNWNs
 
 https://jeffreykegler.github.io/Ocean-of-Awareness-blog/individual/2015/03/peg.html
+
 https://www.codeproject.com/Articles/10115/Crafting-an-interpreter-Part-Parsing-and-Grammar
 
 http://matt.might.net/articles/grammars-bnf-ebnf/
 
-http://www.bottlecaps.de/rr/ui
+https://github.com/tabatkins/railroad-diagrams
 
 Original PEG paper http://bford.info/pub/lang/peg.pdf
 
-[1] OK, it was me.
-
-[1] see the accompanying repository for the sample data
-
-[2] match query is actually sufficient to do this by itself. xxxxxx
-
+<div id="fn1">[1] OK, it was me.</div>
