@@ -49,3 +49,9 @@ task :build do
     f.write(compiled)
   end
 end
+
+task :deploy => :build do
+  dest = File.join(__dir__, '..', 'lug', 'static', 'query-parser')
+  FileUtils.mkdir_p(dest)
+  FileUtils.cp_r(File.join(__dir__, 'build', '.'), dest)
+end
