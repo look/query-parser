@@ -34,6 +34,8 @@ task :build do
     start_line = Integer($2) - 1
     end_line = Integer($3) - 1
     lines = source_code.fetch(filename).slice(start_line..end_line)
+    offset = lines.first.index(/[^ ]/)
+    lines.map! { |l| l[offset, l.length] || "\n" }
     replacement = %Q(```ruby\n#{lines.join}````)
   end
 
