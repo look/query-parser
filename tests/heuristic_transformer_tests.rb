@@ -11,7 +11,7 @@ class HeuristicTransformerTest < Minitest::Test
       ]
     }
 
-    query = HeuristicTransformer.new.apply(parsed_query)
+    query = HeuristicParser::QueryTransformer.new.apply(parsed_query)
     assert(query.should_clauses.size, 2)
     assert(query.must_clauses.size, 0)
     assert(query.must_not_clauses.size, 1)

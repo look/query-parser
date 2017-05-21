@@ -3,7 +3,7 @@ require_relative '../phrase_parser'
 
 class PhraseParserTests < Minitest::Test
   def test_simple_query
-    tree = PhraseParser.new.parse('foo')
+    tree = PhraseParser::QueryParser.new.parse('foo')
     expected = {
       :query => [
         {:clause => {:term => 'foo'}}
@@ -13,7 +13,7 @@ class PhraseParserTests < Minitest::Test
   end
 
   def test_negation_query
-    tree = PhraseParser.new.parse('-foo')
+    tree = PhraseParser::QueryParser.new.parse('-foo')
     expected = {
       :query => [
         {:clause => {:operator => '-', :term => 'foo'}}
@@ -23,7 +23,7 @@ class PhraseParserTests < Minitest::Test
   end
 
   def test_single_word_phrase
-    tree = PhraseParser.new.parse('"foo"')
+    tree = PhraseParser::QueryParser.new.parse('"foo"')
     expected = {
       :query => [
         {:clause => {:phrase => [{:term => 'foo'}]}}
@@ -33,7 +33,7 @@ class PhraseParserTests < Minitest::Test
   end
 
   def test_single_phrase
-    tree = PhraseParser.new.parse('"foo bar"')
+    tree = PhraseParser::QueryParser.new.parse('"foo bar"')
     expected = {
       :query => [
         {:clause => {:phrase => [{:term => 'foo'}, {:term => 'bar'}]}}
@@ -43,7 +43,7 @@ class PhraseParserTests < Minitest::Test
   end
 
   def test_complex_query
-    tree = PhraseParser.new.parse('foo -bar +"hello" -"cat in the hat"')
+    tree = PhraseParser::QueryParser.new.parse('foo -bar +"hello" -"cat in the hat"')
     expected = {
       :query => [
         {

@@ -17,7 +17,7 @@ class SearchTests < Minitest::Test
   end
 
   def test_query
-    query_dsl = HeuristicQuery.elasticsearch_query_for('kill "cat is plotting"')
+    query_dsl = HeuristicParser::Query.elasticsearch_query_for('kill "cat is plotting"')
     results = ElasticsearchHelpers.search(query_dsl)
 
     hits = results.fetch('hits').fetch('hits')
@@ -26,7 +26,7 @@ class SearchTests < Minitest::Test
   end
 
   def test_negation_query
-    query_dsl = HeuristicQuery.elasticsearch_query_for('cat -hat')
+    query_dsl = HeuristicParser::Query.elasticsearch_query_for('cat -hat')
     results = ElasticsearchHelpers.search(query_dsl)
 
     hits = results.fetch('hits').fetch('hits')
@@ -36,7 +36,7 @@ class SearchTests < Minitest::Test
   end
 
   def test_date_range_query
-    query_dsl = HeuristicQuery.elasticsearch_query_for('1950s')
+    query_dsl = HeuristicParser::Query.elasticsearch_query_for('1950s')
     results = ElasticsearchHelpers.search(query_dsl)
 
     hits = results.fetch('hits').fetch('hits')
@@ -45,7 +45,7 @@ class SearchTests < Minitest::Test
   end
 
   def test_negation_date_range_query
-    query_dsl = HeuristicQuery.elasticsearch_query_for('-2010')
+    query_dsl = HeuristicParser::Query.elasticsearch_query_for('-2010')
     results = ElasticsearchHelpers.search(query_dsl)
 
     hits = results.fetch('hits').fetch('hits')

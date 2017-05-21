@@ -29,7 +29,7 @@ class PhraseTransformerTests < Minitest::Test
       ]
     }
 
-    phrase_query = PhraseTransformer.new.apply(parsed_query)
+    phrase_query = PhraseParser::QueryTransformer.new.apply(parsed_query)
 
     assert(phrase_query.should_clauses.size, 1)
     assert(phrase_query.must_clauses.size, 1)
@@ -50,7 +50,7 @@ class PhraseTransformerTests < Minitest::Test
       ]
     }
 
-    phrase_query = PhraseTransformer.new.apply(parsed_query)
+    phrase_query = PhraseParser::QueryTransformer.new.apply(parsed_query)
     assert(phrase_query.should_clauses.size, 1)
     assert("bar", phrase_query.should_clauses.first.phrase)
   end
@@ -66,6 +66,6 @@ class PhraseTransformerTests < Minitest::Test
       ]
     }
 
-    assert_raises { PhraseTransformer.new.apply(parsed_query) }
+    assert_raises { PhraseParser::QueryTransformer.new.apply(parsed_query) }
   end
 end

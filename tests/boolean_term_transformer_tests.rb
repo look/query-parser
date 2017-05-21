@@ -19,7 +19,7 @@ class BooleanTermTransformerTests < Minitest::Test
       ]
     }
 
-    boolean_term_query = BooleanTermTransformer.new.apply(parsed_query)
+    boolean_term_query = BooleanTermParser::QueryTransformer.new.apply(parsed_query)
 
     assert_equal(0, boolean_term_query.must_terms.size)
     assert_equal(['hat'], boolean_term_query.should_terms)
