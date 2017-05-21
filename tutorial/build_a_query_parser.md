@@ -72,16 +72,18 @@ In this tutorial, I'll be walking through the creation of a query parser using t
 
 At first, the query parser will be extremely limited. Given input like "cat in the hat" it will be able to generate this Elasticsearch query:
 
-    {
-      "query": {
-        "match": {
-          "title": {
-            "query": "cat in the hat",
-            "operator": "or"
-          }
-        }
+```json
+{
+  "query": {
+    "match": {
+      "title": {
+        "query": "cat in the hat",
+        "operator": "or"
       }
     }
+  }
+}
+```
 
 This is a [match](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query.html) query, which does not interpret its input. You may notice that...we could just take the user input and put it in JSON structure. But we need to start somewhere!
 
@@ -205,7 +207,7 @@ Notice how rules can be used by other rules. They plain old Ruby objects.
 
 Now that we have a parser, we can instantiate it and parse a string:
 
-```
+```ruby
 MyParser.new.parse("hello parslet")
 # => "hello parslet"@0
 ```
@@ -214,14 +216,14 @@ It doesn't look like much! But notice the `@0`. The result is a [Parslet::Slice]
 
 This humble parser is also capable of rejecting invalid input:
 
-```
+```ruby
 MyParser.new.parse("hello, parslet")
 # => Parslet::ParseFailed: Extra input after last repetition at line 1 char 6.
 ```
 
 The error message pinpoints exactly which character violated the grammar. With the `#ascii_tree`, you can get more details.
 
-```
+```ruby
 begin
   MyParser.new.parse("hello, parslet")
 rescue Parslet::ParseFailed => e
@@ -372,7 +374,7 @@ In Parslet, the new clause node can be defined like this:
 
 Parsing a query yields a parse tree like this:
 
-```
+```ruby
 QueryParser.new.parse("the +cat in the -hat")
 # =>
 {:query=>
@@ -859,7 +861,7 @@ Finally, we add a `date_range` method to the `Query` class that converts a `Date
 
 Here is the Elasticsearch query DSL it generates:
 
-```
+```ruby
 parse_tree = QueryParser.new.parse('cats "in the hat" 1970s')
 query = QueryTransformer.new.apply(parse_tree)
 query.to_elasticsearch

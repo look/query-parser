@@ -1,5 +1,6 @@
 require 'rake/testtask'
 require 'commonmarker'
+require 'commonmarker/rouge'
 require 'fileutils'
 
 task :default => :test
@@ -40,7 +41,7 @@ task :build do
   end
 
   # TODO: Subclass CommonMarker::HtmlRenderer to add syntax highlighting with rouge
-  html = CommonMarker.render_html(tutorial)
+  html = CommonMarker::Rouge.render_html(tutorial)
 
   # TODO: Figure out a better way to create a layout for a markdown document
   compiled = layout.gsub('<body></body>', "<body>#{html}</body>")
