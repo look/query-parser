@@ -20,7 +20,8 @@ module PhraseParser
       if clause[:term]
         TermClause.new(clause[:operator]&.to_s, clause[:term].to_s)
       elsif clause[:phrase]
-        PhraseClause.new(clause[:operator]&.to_s, clause[:phrase].map { |p| p[:term].to_s }.join(" "))
+        phrase = clause[:phrase].map { |p| p[:term].to_s }.join(" ")
+        PhraseClause.new(clause[:operator]&.to_s, phrase)
       else
         raise "Unexpected clause type: '#{clause}'"
       end
@@ -85,15 +86,21 @@ module PhraseParser
       }
 
       if should_clauses.any?
-        query[:query][:bool][:should] = should_clauses.map { |clause| clause_to_query(clause) }
+        query[:query][:bool][:should] = should_clauses.map do |clause|
+          clause_to_query(clause)
+        end
       end
 
       if must_clauses.any?
-        query[:query][:bool][:must] = must_clauses.map { |clause| clause_to_query(clause) }
+        query[:query][:bool][:must] = must_clauses.map do |clause|
+          clause_to_query(clause)
+        end
       end
 
       if must_not_clauses.any?
-        query[:query][:bool][:must_not] = must_not_clauses.map { |clause| clause_to_query(clause) }
+        query[:query][:bool][:must_not] = must_not_clauses.map do |clause|
+          clause_to_query(clause)
+        end
       end
 
       query

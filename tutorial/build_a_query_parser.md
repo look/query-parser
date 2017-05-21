@@ -70,7 +70,7 @@ In this tutorial, I'll be walking through the creation of a query parser using t
 
 ## Building a term-based query parser
 
-Our first parser will be extremely limited. Given input like "cat in the hat" it can generate this Elasticsearch query:
+At first, the query parser will be extremely limited. Given input like "cat in the hat" it will be able to generate this Elasticsearch query:
 
     {
       "query": {
@@ -85,7 +85,7 @@ Our first parser will be extremely limited. Given input like "cat in the hat" it
 
 This is a [match](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query.html) query, which does not interpret its input. You may notice that...we could just take the user input and put it in JSON structure. But we need to start somewhere!
 
-## Defining a grammar
+### Defining a grammar
 
 First, let's define a grammar for our simple query language using [Backus–Naur form](https://en.wikipedia.org/wiki/Backus%E2%80%93Naur_form) (BNF).
 
@@ -96,7 +96,7 @@ First, let's define a grammar for our simple query language using [Backus–Naur
 
 Where `alphanumeric` is defined as the characters `[a-zA-Z0-9]`. The definitions are recursive to allow repetition. A [railroad diagram](https://en.wikipedia.org/wiki/Syntax_diagram) helps visualize the syntax.
 
-### Query
+#### Query
 
 <svg class="railroad-diagram" width="180" height="92" viewBox="0 0 180 92">
 <g transform="translate(.5 .5)">
@@ -126,7 +126,7 @@ Where `alphanumeric` is defined as the characters `[a-zA-Z0-9]`. The definitions
 </svg>
 
 
-### Term
+#### Term
 
 <svg class="railroad-diagram" width="236" height="92" viewBox="0 0 236 92">
 <g transform="translate(.5 .5)">
@@ -239,18 +239,18 @@ Extra input after last repetition at line 1 char 6.
 
 ```
 
-## Building a parse tree
+### Building a parse tree
 
 The simple parser above can recognize strings that match the grammar, but can't do anything with it. Using `#as`, we can capture parts of the input that we want to keep and save them as a parse tree. Anything not named with `#as` is discarded.
 
 We need to capture the terms and the overall query.
 
-    {{code="term_parser.rb:3-8"}}
+    {{code="term_parser.rb:6-11"}}
 
 This produces a parse tree rooted at `:query` that contains a list of `:term` objects. The value of the `:term` is a `Parslet::Slice`, as we saw above.
 
 ```ruby
-TermParser.new.parse("cat in the hat")
+QueryParser.new.parse("cat in the hat")
 # =>
 {
   :query => [
@@ -264,19 +264,19 @@ TermParser.new.parse("cat in the hat")
 
 Once you have defined your parse tree, you can create a [Parslet::Transform](http://www.rubydoc.info/gems/parslet/Parslet/Transform) to convert the parse tree into an abstract syntax tree; or in our case, an object that knows how to convert itself to the Elasticsearch query DSL.
 
-A `Parslet::Transform` defines rules for matching part of the parse tree and converting it to something else. Walking up from the leaf nodes, the entire tree is consumed. For this parse tree, the transformation is simple: match a `:term` Hash and convert it to a String, then match an array of terms and instantiate a `TermQuery` object:
+A `Parslet::Transform` defines rules for matching part of the parse tree and converting it to something else. Walking up from the leaf nodes, the entire tree is consumed. For this parse tree, the transformation is simple: match a `:term` `Hash` and convert it to a `String`, then match an array of terms and instantiate a `Query` object:
 
-    {{code="term_parser.rb:10-14"}}
+    {{code="term_parser.rb:13-16"}}
 
-`TermQuery` is also simple. It stores its list of term Strings, and defines a `#to_elasticsearch` method that joins them back together again in the query DSL:
+`Query` is also simple. It stores its list of term Strings, and defines a `#to_elasticsearch` method that joins them back together again in the query DSL:
 
-    {{code="term_parser.rb:16-35"}}
+    {{code="term_parser.rb:19-38"}}
 
 All together, we can now generate an Elasticsearch `match` query:
 
 ```ruby
-parse_tree = TermParser.new.parse("cat in the hat")
-query = TermTransformer.new.apply(parse_tree)
+parse_tree = QueryParser.new.parse("cat in the hat")
+query = QueryTransformer.new.apply(parse_tree)
 query.to_elasticsearch
 # =>
 {
@@ -366,14 +366,14 @@ To support boolean logic, we'll add a new entity to our parse tree: a clause. A 
 </svg>
 
 
-In Parlet, this can be defined like this:
+In Parslet, the new clause node can be defined like this:
 
-    {{code="boolean_term_parser.rb:5-12"}}
+    {{code="boolean_term_parser.rb:6-13"}}
 
 Parsing a query yields a parse tree like this:
 
 ```
-BooleanTermParser.new.parse("the +cat in the -hat")
+QueryParser.new.parse("the +cat in the -hat")
 # =>
 {:query=>
   [{:clause=>{:term=>"the"@0}},
@@ -383,7 +383,7 @@ BooleanTermParser.new.parse("the +cat in the -hat")
    {:clause=>{:operator=>"-"@16, :term=>"hat"@17}}]}
 ```
 
-Transforming this parse tree into the Elasticsearch query DSL will be a little more complicated than the previous parser, where we could use `match` directly. Elasticsearch supports several [compound queries](https://www.elastic.co/guide/en/elasticsearch/reference/current/compound-queries.html) that allow you to combine simpler queries in complicated ways. For our parser, we'll use the [`bool` query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html). It looks like this:
+Transforming this parse tree into the Elasticsearch query DSL will be a little more complicated than the previous iteration, where we could use `match` directly. Elasticsearch supports several [compound queries](https://www.elastic.co/guide/en/elasticsearch/reference/current/compound-queries.html) that allow you to combine simpler queries in complicated ways. For our parser, we'll use the [`bool` query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html). It looks like this:
 
 ```json
 {
@@ -399,29 +399,29 @@ Transforming this parse tree into the Elasticsearch query DSL will be a little m
 
 Yes, the input to a `bool` query is more queries. This is why you can be overwhelmed by `query`, `query`, `query` when trying to understand the JSON of a complicated Elasticsearch query!
 
-In order to transform the parse tree into an Elasticsearch bool query, let's defined a few classes.
+In order to transform the parse tree into an Elasticsearch bool query, let's define a few classes.
 
 First `Operator` is a helper to convert `+`, `-`, or `nil` into `:must`, `:must_not`, or `:should`:
 
-    {{code="operator.rb:1-14"}}
+    {{code="boolean_term_parser.rb:22-35"}}
 
 Next, `Clause` holds an `Operator` and a term (which is a `String`):
 
-    {{code="boolean_term_parser.rb:21-28"}}
+    {{code="boolean_term_parser.rb:37-44"}}
 
-Then, `BooleanTermQuery` takes an `Array` of clauses and segments them into `should`, `must`, and `must_not` for conversion to the Elasticsearch query DSL:
+Finally, `Query` changes to take an `Array` of clauses and buckets them into `should`, `must`, and `must_not` for conversion to the Elasticsearch query DSL:
 
-    {{code="boolean_term_parser.rb:30-71"}}
+    {{code="boolean_term_parser.rb:46-87"}}
 
-Using these classes, we can write a Parlet transformer to convert the parse tree to a `BooleanTermQuery`:
+Using these classes, we can write a Parslet transformer to convert the parse tree to a `Query`:
 
-    {{code="boolean_term_parser.rb:14-19"}}
+    {{code="boolean_term_parser.rb:15-20"}}
 
-Since a clause only has a single term, we can use Parslet's `subtree` to consume each `:clause` hash from the tree and convert them to `Clause` instances. Then `sequence` will consume the array of `Clause` objects to create the `BooleanTermQuery`.
+Since a clause only has a single term, we can use Parslet's `subtree` to consume each `:clause` hash from the tree and convert them to `Clause` instances. Then `sequence` will consume the array of `Clause` objects to create the `Query`.
 
 ```ruby
-parse_tree = BooleanTermParser.new.parse('the +cat in the -hat')
-query = BooleanTermTransformer.new.apply(parse_tree)
+parse_tree = QueryParser.new.parse('the +cat in the -hat')
+query = QueryTransformer.new.apply(parse_tree)
 query.to_elasticsearch
 # =>
 {:query=>
@@ -434,13 +434,13 @@ query.to_elasticsearch
      :must_not=>[{:match=>{:title=>{:query=>"hat"}}}]}}}
 ```
 
-Now we have a bool query ready to send to Elasticsearch!
+Now we have a `bool` query ready to send to Elasticsearch!
 
 **XXX** Add a script that readers can run to execute queries?
 
 ## Phrase queries
 
-Another important feature for a query parser is to be able to match phrases. In Elasticsearch, this is done with a [match_phrase](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query-phrase.html) query. The `match_phrase` query can be used as input for the `bool` query, just like the `BooleanTermQuery` used the `match` query. In our query language an example query might look like:
+Another important feature for a query parser is to be able to match phrases. In Elasticsearch, this is done with a [match_phrase](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query-phrase.html) query. A `match_phrase` query can be used as input for a `bool` query, just like we previously used the `match` query. In our query language, an example query might look like:
 
     "cat in the hat" -green +ham
 
@@ -550,14 +550,14 @@ Another important feature for a query parser is to be able to match phrases. In 
 </g>
 </svg>
 
-Building on the previous example, we can add rules for matching a phrase defined as a sequence of one or more terms surrounded by quotation marks.
+Building on the previous example, let's add rules for matching a phrase, defined as a sequence of one or more terms surrounded by quotation marks.
 
-    {{code="phrase_parser.rb:4-13"}}
+    {{code="phrase_parser.rb:7-16"}}
 
 The parse tree for the example query looks like this:
 
 ```ruby
-PhraseParser.new.parse('"cat in the hat" -green +ham')
+QueryParser.new.parse('"cat in the hat" -green +ham')
 # =>
 {:query=>
   [{:clause=>
@@ -572,21 +572,21 @@ PhraseParser.new.parse('"cat in the hat" -green +ham')
 
 To support phrases, the `Clause` object needs to know whether it is a term clause or a phrase clause. To do this, let's introduce separate classes for `TermClause` and `PhraseClause`:
 
-    {{code="phrase_parser.rb:28-44"}}
+    {{code="phrase_parser.rb:47-63"}}
 
-Other than this change, the code stays quite similar to the boolean term query parser. The Phrase query now needs to operate on the clause level rather than the term level, and later when generating the `bool` queries, choose `match` or `match_phrase` depending on the type.
+Other than this change, the code stays quite similar to the boolean term query parser. `Query` now needs to operate on the clause level rather than the term level, and later when generating the `bool` queries, choose `match` or `match_phrase` depending on the type.
 
-    {{code="phrase_parser.rb:46-114"}}
+    {{code="phrase_parser.rb:65-139"}}
 
-With these classes defined, `PhraseTransformer` can take the parse tree and transform it into a `PhraseQuery`:
+With these classes defined, `QueryTransformer` can take the parse tree and transform it into a `Query`:
 
-    {{code="phrase_parser.rb:15-26"}}
+    {{code="phrase_parser.rb:18-30"}}
 
-And here is the Elasticsearch query it generates:
+Here is the Elasticsearch query it generates:
 
 ```ruby
-parse_tree = PhraseParser.new.parse('"cat in the hat" -green +ham')
-query = PhraseTransformer.new.apply(parse_tree)
+parse_tree = QueryParser.new.parse('"cat in the hat" -green +ham')
+query = QueryTransformer.new.apply(parse_tree)
 query.to_elasticsearch
 # =>
 {:query=>
@@ -605,7 +605,7 @@ With these features, this is a respectable query parser. It supports a simple sy
 
 So far, what we've built has been aimed at providing a simple user experience -- and preventing harmful queries. However, another benefit of building your own query parser is that it is specific to your application, so you can tailor it to your domain.
 
-For example, let's say we are building search for a database of books. We know a lot about the data, and can develop heuristics for users search input. Let's say that we know all publication dates for books in the catalog are from the twentieth and early twenty-first century. We can turn a search term like "1970" or "1970s" into a date range query for the dates 1970 - 1979.
+For example, let's say we are building search for a database of books. We know a lot about the data, and can develop heuristics for users' search input. Let's say that we know all publication dates for books in the catalog are from the twentieth and early twenty-first century. We can turn a search term like "1970" or "1970s" into a date range query for the dates 1970 - 1979.
 
 For the search `cats 1970s` the Elasticsearch query DSL we want to generate is:
 
@@ -845,19 +845,33 @@ Where `decade` is defined as:
 
 To implement this, we add the new `decade` rule to the parser and use it in the `clause` rule.
 
-    {{code="heuristic_parser.rb:4-18"}}
+    {{code="heuristic_parser.rb:7-21"}}
 
 A PEG parser always takes the first alternative, so we need to make `decade` match before `term`, because a `decade` is always a valid `term`. If we didn't do this, the `decade` rule would never match.
 
 For the transformer, we define a `DateRangeClause` class that takes a number and converts it into a start and end date:
 
-    {{code="heuristic_parser.rb:53-61"}}
+    {{code="heuristic_parser.rb:71-79"}}
 
-Finally, we add `date_range` method that converts a `DateRangeClause` into the Elasticsearch query DSL.
+Finally, we add a `date_range` method to the `Query` class that converts a `DateRangeClause` into the Elasticsearch query DSL.
 
-    {{code="heuristic_parser.rb:134-143"}}
+    {{code="heuristic_parser.rb:152-161"}}
 
-Now, thanks to Parslet, we have created a simple query parser that's purpose-built for our application. We fully control the syntax and Elasticsearch queries it makes, and we can add more heuristics that make sense for our application, but would never be part of a general-purpose query parser.
+Here is the Elasticsearch query DSL it generates:
+
+```
+parse_tree = QueryParser.new.parse('cats "in the hat" 1970s')
+query = QueryTransformer.new.apply(parse_tree)
+query.to_elasticsearch
+#=> {:query=>
+  {:bool=>
+    {:should=>
+      [{:match=>{:title=>{:query=>"cats"}}},
+       {:match_phrase=>{:title=>{:query=>"in the hat"}}},
+       {:range=>{:publication_year=>{:gte=>1970, :lte=>1979}}}]}}}
+```
+
+Now, thanks to Parslet, we have created a query parser that's purpose-built for our application. We fully control the syntax and Elasticsearch queries it makes, and we can add more heuristics that make sense for our application, but would never be part of a general-purpose query parser.
 
 ## Resources
 
