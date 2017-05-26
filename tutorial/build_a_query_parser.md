@@ -263,7 +263,12 @@ query.to_elasticsearch
 }
 ```
 
-**XXX** NEED TO TALK ABOUT FIELDS! This example uses `title` hard-coded. Where'd that come from?
+<div class="aside">
+
+### Aside: Fields
+
+You may have noticed the Elasticsearch queries are only searching one field, `title`. This keeps the example code simple. A real query generator would need to know the [mapping](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html)'s schema so it could, for example, search all `text` fields.
+</div>
 
 OK, that was fun, but this is a a roundabout way of generating a simple Elasticsearch query. So far, the code could be replaced with a simple `match` query to Elasticsearch. But we can build up from here.
 
