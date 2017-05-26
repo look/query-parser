@@ -49,11 +49,30 @@ task :build do
     %Q(```ruby\n#{lines.join}````)
   end
 
-  # TODO: Subclass CommonMarker::HtmlRenderer to add syntax highlighting with rouge
-  html = CommonMarker::Rouge.render_html(tutorial)
+  doc = CommonMarker::Rouge.render_doc(tutorial)
+
+  doc.walk do |node|
+    if node.type == :header
+      text = []
+      node.each do |subnode|
+        if subnode.type == :text
+          text << subnode.string_content
+        end
+      end
+
+      # There seems to be only one :text subnode for headers
+      id = text.map(&:split).flatten.map(&:downcase).map { |word| word.gsub(/[^a-z0-9 ]/, '') }.join('_')
+
+      html = %Q(<h#{node.header_level} id="#{id}">#{text.join(' ')}</h#{node.header_level}>)
+      new_node = ::CommonMarker::Node.new(:html)
+      new_node.string_content = html
+      node.insert_before(new_node)
+      node.delete
+    end
+  end
 
   # TODO: Figure out a better way to create a layout for a markdown document
-  compiled = layout.gsub('<body></body>', "<body>#{html}</body>")
+  compiled = layout.gsub('<body></body>', "<body>#{doc.to_html}</body>")
 
   FileUtils.mkdir_p('build')
 
