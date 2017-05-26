@@ -2,7 +2,15 @@
 ## (DRAFT please do not distribute)
 By [Luke Francl](http://www.recursion.org) ([look@recursion.org](mailto:look@recursion.org)), XXX 2017
 
-More than a few times in my career, I've been part of a project that needed search. A Lucene-based search engine fits the bill. Usually somebody<sup>[[1](#fn1)]</sup> finds the search engine's built-in query parser, wires it up and that is that. It seems like a good idea and saves time up-front. But in the long run, it's better to write your own query parser.
+More than a few times in my career, I've been part of a project that needed search. A Lucene-based search engine fits the bill. Somebody<sup>[[1](#fn1)]</sup> finds the search engine's built-in query parser, wires it up, and that is that. It seems like a good idea and saves time up-front.
+
+However, it's better to write your own query parser, for two reasons. First, **built-in parsers are too powerful**. They are confusing and allow users to trigger expensive queries that can kill performance. Second, **built-in parsers are too generic**. When you control your own parser, you can add features to it and customize _your_ application's search behavior for _your_ users.
+
+This might sound daunting, but thanks to easy-to-use parser libraries, it's straightfoward.
+
+In this tutorial, we'll create of a query parser using the Ruby library [Parslet](http://kschiess.github.io/parslet/) that can generate queries for the Elasticsearch query DSL. Building up from a simple term parser, we'll add boolean operators, phrases, and close by adding an application-specific heuristic that would never make sense as part of a generic query parser.
+
+Want to skip to the code? Each step of the tutorial [is available as a self-contained file](https://github.com/look/query-parser) so it's easy to follow along.
 
 <div class="toc">
 
@@ -485,8 +493,6 @@ query.to_elasticsearch
 Now, thanks to Parslet, we have created a query parser that's purpose-built for our application. We fully control the syntax and Elasticsearch queries it makes, and we can add more heuristics that make sense for our application, but would never be part of a general-purpose query parser.
 
 ## Resources
-
-**XXX:** Something about where to find the source code, how it's organized? Could also be an aside.
 
 The parslet tutorial is an excellent resource.
 
