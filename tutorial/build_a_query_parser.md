@@ -1,9 +1,29 @@
 # Build a query parser
+## (DRAFT please do not distribute)
 By [Luke Francl](http://www.recursion.org) ([look@recursion.org](mailto:look@recursion.org)), XXX 2017
 
-## DRAFT Please do not distribute
-
 More than a few times in my career, I've been part of a project that needed search. A Lucene-based search engine fits the bill. Usually somebody<sup>[[1](#fn1)]</sup> finds the search engine's built-in query parser, wires it up and that is that. It seems like a good idea and saves time up-front. But in the long run, it's better to write your own query parser.
+
+<div class="toc">
+
+## Table of contents
+
+* [Problems with generic query parsers](#problems_with_generic_query_parsers)
+  * [User input may contain special characters](#user_input_may_contain_special_characters)
+  * [Intentionally or unintentionally triggering advanced query features](#intentionally_or_unintentionally_triggering_advanced_query_features)
+  * [Huge number of terms](#huge_number_of_terms)
+  * [Avoiding the foot gun](#avoiding_the_foot_gun)
+* [Take control of your search box](#take_control_of_your_search_box)
+* [Building a term-based query parser](#building_a_termbased_query_parserg)
+  * [Defining a grammar](#defining_a_grammar)
+  * [Defining a grammar with Parslet](#defining_a_grammer_with_parslet)
+  * [Building a parse tree](#building_a_parse_tree)
+* [Boolean queries: should, must, and must not](#boolean_queries_should_must_and_must_not)
+* [Phrase queries](#phrase_queries)
+* [Going beyond generic query parsers: Adding heuristics](#going_beyond_generic_query_parsers_adding_heuristics)
+* [Resources](#resources)
+
+</div>
 
 ## Problems with generic query parsers
 
