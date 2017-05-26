@@ -27,8 +27,17 @@ task :build do
     obj[File.basename(filename)] = File.readlines(filename)
   end
 
+  svgs = Dir[File.join(__dir__, 'tutorial', '*.svg')].each_with_object({}) do |filename, obj|
+    obj[File.basename(filename)] = File.read(filename)
+  end
+
   # Why yes, I am manipulating markup with regular expressions in a tutorial about writing a parser.
   # Why do you ask?
+  tutorial.gsub!(/^\s*{{svg="([a-z\-]+\.svg)"}}$/) do |s|
+    filename = $1
+    "\n\n#{svgs.fetch(filename)}"
+  end
+
   tutorial.gsub!(/^\s*{{code="([a-z_]+\.rb):(\d+)-(\d+)"}}$/) do |s|
     filename = $1
     # Line numbers are 1 indexed
@@ -37,7 +46,7 @@ task :build do
     lines = source_code.fetch(filename).slice(start_line..end_line)
     offset = lines.first.index(/[^ ]/)
     lines.map! { |l| l[offset, l.length] || "\n" }
-    replacement = %Q(```ruby\n#{lines.join}````)
+    %Q(```ruby\n#{lines.join}````)
   end
 
   # TODO: Subclass CommonMarker::HtmlRenderer to add syntax highlighting with rouge
