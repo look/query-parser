@@ -45,7 +45,7 @@ Also, some characters [can't be escaped](https://www.elastic.co/guide/en/elastic
 
 Related to the above point, users can intentionally or unintentionally trigger advanced query features. For example, limiting a search term to a single field with `field_name:term` or boosting a term with `term^10`. The results range from confusing to malicious.
 
-These operators can cause **very** expensive queries. In Lucene-based tools, [certain queries are very expensive](https://lucene.apache.org/core/6_5_0/core/org/apache/lucene/search/AutomatonQuery.html), because they require enumerating terms from the term dictionary in order to generate the query. A query with wildcards (especially a leading wildcard!) or regular expression [will do this](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_regular_expressions):
+Some operators can cause **very** expensive queries. In Lucene-based tools, [certain queries are very expensive](https://lucene.apache.org/core/6_5_0/core/org/apache/lucene/search/AutomatonQuery.html), because they require enumerating terms from the term dictionary in order to generate the query. A query with wildcards (especially a leading wildcard!) or regular expression [will do this](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_regular_expressions):
 
 > A query string such as the following would force Elasticsearch to visit every term in the index:
 >
@@ -53,17 +53,17 @@ These operators can cause **very** expensive queries. In Lucene-based tools, [ce
 >
 > Use with caution!
 
-Range queries may seem harmless, but they [also have this problem](http://george-stathis.com/2013/10/18/setting-the-booleanquery-maxclausecount-in-elasticsearch/) (beware range queries on wide ranges of high resolution data!).
+Range queries may seem harmless, but they [also have this problem](http://george-stathis.com/2013/10/18/setting-the-booleanquery-maxclausecount-in-elasticsearch/) (beware wide range queries on high resolution data!).
 
 ### Huge number of terms
 
 Passing a user input directly to the query parser can be dangerous for more prosaic reasons. For example, the user may simply enter a large number of terms. This will generate a query with many clauses, which will take longer to execute. Truncating the query string is a simple work around, but if you truncate in the middle of an expression (for example, by breaking a quoted phrase or parenthetical expression), it could lead to an invalid query.
 
-## Avoiding the foot gun
+### Avoiding the foot gun
 
 Lucene 4.7 added a new `SimpleQueryParser` that improved things quite a bit. In Elasticsearch, [this is available as `simple_query_string`](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html) in the search DSL. Unlike `query_string`, `simple_query_string` is designed to be exposed to end users and reduces the complexity of queries that can be created.
 
-But even `SimpleQueryParser` is quite powerful in ways you may not want. [Users can specify](http://lucene.apache.org/core/6_5_0/queryparser/org/apache/lucene/queryparser/simple/SimpleQueryParser.html):
+But `SimpleQueryParser` is still powerful. [Users can specify](http://lucene.apache.org/core/6_5_0/queryparser/org/apache/lucene/queryparser/simple/SimpleQueryParser.html) queries with the following operators:
 
 > `+` signifies AND operation<br>
 > `|` signifies OR operation<br>
@@ -74,7 +74,9 @@ But even `SimpleQueryParser` is quite powerful in ways you may not want. [Users 
 > `~N` after a word signifies edit distance (fuzziness)<br>
 > `~N` after a phrase signifies slop amount
 
-## Taking control of your search box
+This syntax is both complicated and may let users generate expensive queries.
+
+## Take control of your search box
 
 Often, when you go down the built-in query parser route, you'll get something working quickly, but later run into problems. Users (or your exception monitoring software) complains that queries don't work; or extremely expensive queries slow the service down for everyone.
 
@@ -84,7 +86,7 @@ That's why it's worth the time to build a simple query parser. Here's some advan
 * Handle expensive queries up front (for example, by limiting the number of terms that can be searched for)
 * Better and faster error feedback for users
 * perform programmatic modification of search queries before running them (for example, synonym expansion, spelling correction, or removing problematic characters)
-* Build in heuristics specific to your application that are not possible for a general-purpose parser (EXAMPLE: date parsing)
+* Build in heuristics specific to your application that are not possible for a general-purpose parser
 
 In this tutorial, I'll be walking through the creation of a query parser using the Ruby library [Parslet](http://kschiess.github.io/parslet/) that can generate queries for the Elasticsearch query DSL. It will start simple, but build up to supporting terms, boolean operators (`-` and `+`), and phrases. This is a good 80% solution that will work well for most use cases. It's more limited than the syntax supported by `SimpleQueryParser`, but the syntax is controlled by _our_ code now, so we can add new features if _we_ need to.
 
@@ -126,7 +128,7 @@ Where `alphanumeric` is defined as the characters `[a-zA-Z0-9]`. The definitions
 
     {{svg="term.svg"}}
 
-## Defining a grammar with Parslet
+### Defining a grammar with Parslet
 
 BNF defines the rules for a generative grammar for a context-free language, which means it can be ambiguous. Parsing algorithms transform the grammar into a parser that can produce a parse tree, with special cases to handle the ambiguity of a context-free grammar. 
 
@@ -207,7 +209,6 @@ Extra input after last repetition at line 1 char 6.
 `- Failed to match sequence (TERM SPACE?) at line 1 char 6.
    `- Expected at least 1 of [a-zA-Z0-9] at line 1 char 6.
       `- Failed to match [a-zA-Z0-9] at line 1 char 6.
-
 ```
 
 ### Building a parse tree
@@ -403,7 +404,6 @@ query.to_elasticsearch
 ```
 
 **XXX** Again, give readers a script they can use to execute queries
-
 
 With these features, this is a respectable query parser. It supports a simple syntax that's easy to understand and hard to mess up, and more importantly, hard to abuse. From here, we could improve the query parser in many ways to make it more robust. For example, we could limit phrases to 4 terms or limit the total number of clauses to 10. Because we are parsing the query ourselves, we can make decisions about what gets sent to Elasticsearch in an intelligent way that won't cause broken queries.
 
