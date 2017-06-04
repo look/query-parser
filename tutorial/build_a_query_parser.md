@@ -206,7 +206,7 @@ The error message pinpoints exactly which character violated the grammar. With t
 begin
   MyParser.new.parse("hello, parslet")
 rescue Parslet::ParseFailed => e
-  puts e.cause.ascii_tree
+  puts e.parse_failure_cause.ascii_tree
 end
 ```
 
