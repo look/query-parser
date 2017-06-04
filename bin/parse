@@ -1,0 +1,49 @@
+#! /usr/bin/env ruby
+
+require 'ap'
+require 'parslet'
+require_relative '../elasticsearch_helpers'
+require_relative '../heuristic_parser'
+require_relative '../term_parser'
+require_relative '../boolean_term_parser'
+require_relative '../phrase_parser'
+
+parser_types = ['TermParser', 'BooleanTermParser', 'PhraseParser', 'HeuristicParser']
+parser_type = ARGV[0] || 'HeuristicParser'
+
+if !parser_types.include?(parser_type)
+  puts "Parser type must be one of: #{parser_types}"
+  exit(1)
+end
+
+puts "Welcome to the parser test console. Using #{parser_type}."
+puts "Input a query string to see the generated Elasticsearch query DSL."
+puts "To exit, use Control-C or Control-D"
+
+parser = Object.const_get("#{parser_type}::QueryParser").new
+transformer = Object.const_get("#{parser_type}::QueryTransformer").new
+
+trap("SIGINT") do
+  puts "Exiting..."
+  exit(0)
+end
+
+while true
+  puts "Input query string: "
+  query = $stdin.gets
+
+  if query == nil
+    puts "Exiting..."
+    exit(0)
+  end
+
+  begin
+    parse_tree = parser.parse(query)
+    puts "Parse Tree:"
+    ap parse_tree
+    puts "Elasticsearch query DSL:"
+    ap transformer.apply(parse_tree).to_elasticsearch
+  rescue Parslet::ParseFailed => e
+    puts e.parse_failure_cause.ascii_tree
+  end
+end

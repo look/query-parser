@@ -47,7 +47,19 @@ bundle exec rake integration_test
 
 ### Query generation console
 
-TBD.
+The `parse` program allows you to test out the different parser and see the parse tree and Elasticsearch DSL that is generated based on a query string you provide.
+
+To run it:
+
+```
+bundle exec bin/parse
+```
+
+The program defaults to the `HeuristicParser` because it is the most featureful. To try one of the others, provide it as a command-line argument:
+
+```
+bundle exec bin/parse BooleanTermParser
+```
 
 ### Query execution console
 
