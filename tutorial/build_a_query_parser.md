@@ -360,7 +360,18 @@ query.to_elasticsearch
 
 Now we have a `bool` query ready to send to Elasticsearch!
 
-**XXX** Add a script that readers can run to execute queries?
+The [companion source code to this tutorial](https://github.com/look/query-parser) includes a script that lets you input search queries and see the parse tree and generated Elasticsearch query DSL JSON.
+
+```
+$ bundle exec bin/parse BooleanTermParser
+
+Welcome to the parser test console. Using BooleanTermParser.
+Input a query string to see the generated Elasticsearch query DSL.
+To exit, use Control-C or Control-D
+Input query string:
+```
+
+Give it a try!
 
 ## Phrase queries
 
@@ -416,7 +427,7 @@ query.to_elasticsearch
      :must_not=>[{:match=>{:title=>{:query=>"green"}}}]}}}
 ```
 
-**XXX** Again, give readers a script they can use to execute queries
+You can try out the `PhraseParser` by running `bundle exec bin/parse PhraseParser`.
 
 With these features, this is a respectable query parser. It supports a simple syntax that's easy to understand and hard to mess up, and more importantly, hard to abuse. From here, we could improve the query parser in many ways to make it more robust. For example, we could limit phrases to 4 terms or limit the total number of clauses to 10. Because we are parsing the query ourselves, we can make decisions about what gets sent to Elasticsearch in an intelligent way that won't cause broken queries.
 
@@ -489,6 +500,8 @@ query.to_elasticsearch
        {:match_phrase=>{:title=>{:query=>"in the hat"}}},
        {:range=>{:publication_year=>{:gte=>1970, :lte=>1979}}}]}}}
 ```
+
+You can try out the `HeuristicParser` by running `bundle exec bin/parse HeuristicParser`.
 
 Now, thanks to Parslet, we have created a query parser that's purpose-built for our application. We fully control the syntax and Elasticsearch queries it makes, and we can add more heuristics that make sense for our application, but would never be part of a general-purpose query parser.
 
