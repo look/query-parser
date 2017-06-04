@@ -74,7 +74,9 @@ The tutorial is under copyright and cannot be republished without my permission.
 ## TODO
 
 - [] error handling example? and/or "fix" broken queries
-- [] CLI to test queries/get results
 - [] style for a user input query?
 - [] modicum of responsiveness
 - [] update to Elasticsearch 5.4
+- [] Add conclusion
+- [] decade fix
+- [] resources section
