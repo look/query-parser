@@ -29,6 +29,7 @@ Want to skip to the code? Each step of the tutorial [is available as a self-cont
 * [Boolean queries: should, must, and must not](#boolean_queries_should_must_and_must_not)
 * [Phrase queries](#phrase_queries)
 * [Going beyond generic query parsers: Adding heuristics](#going_beyond_generic_query_parsers_adding_heuristics)
+* [Next steps](#next_steps)
 * [Resources](#resources)
 
 </div>
@@ -525,11 +526,11 @@ Here are some great resources for learning more about Parslet.
 To learn more about parsing, check out the following resources:
 
 * [The language of languages](http://matt.might.net/articles/grammars-bnf-ebnf/) by Matt Might
-* [Parsing Expression Grammars: A Recognition-Based Syntactic Foundation](http://bford.info/pub/lang/peg.pdf) by Bryan Ford is the original paper on PEG paper
-* [PEG: Ambiguity, precision and confusion](https://jeffreykegler.github.io/Ocean-of-Awareness-blog/individual/2015/03/peg.html)
-
+* [Parsing Expression Grammars: A Recognition-Based Syntactic Foundation](http://bford.info/pub/lang/peg.pdf) by Bryan Ford is the original paper formalizing PEG parsers.
+* [PEG: Ambiguity, precision and confusion](https://jeffreykegler.github.io/Ocean-of-Awareness-blog/individual/2015/03/peg.html) by Jeffrey Kegler describes some of the tricky problems with PEG parsers.
 
 https://www.codeproject.com/Articles/10115/Crafting-an-interpreter-Part-Parsing-and-Grammar
+http://mousepeg.sourceforge.net/
 
 ## Footnotes
 
