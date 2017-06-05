@@ -1,8 +1,8 @@
 # Build a query parser
-## (DRAFT please do not distribute)
+## Why and how to generate Elasticsearch queries using Ruby and Parslet (DRAFT please do not distribute)
 By [Luke Francl](http://www.recursion.org) ([look@recursion.org](mailto:look@recursion.org)), XXX 2017
 
-More than a few times in my career, I've been part of a project that needed search. A Lucene-based search engine fits the bill. Somebody<sup>[[1](#fn1)]</sup> finds the search engine's built-in query parser, wires it up, and that is that. It seems like a good idea and saves time up-front.
+More than a few times in my career, I've been part of a project that needed search. A Lucene-based search engine fits the bill. Somebody<sup>[1](#fn1)</sup> finds the search engine's built-in query parser, wires it up, and that is that. It seems like a good idea and saves time up-front.
 
 However, it's better to write your own query parser, for two reasons. First, **built-in parsers are too powerful**. They are confusing and allow users to trigger expensive queries that can kill performance. Second, **built-in parsers are too generic**. When you control your own parser, you can add features to it and customize _your_ application's search behavior for _your_ users.
 
@@ -87,6 +87,16 @@ This syntax is both complicated and may let users generate expensive queries.
 ## Take control of your search box
 
 Often, when you go down the built-in query parser route, you'll get something working quickly, but later run into problems. Users (or your exception monitoring software) complains that queries don't work; or extremely expensive queries slow the service down for everyone.
+
+<div class="aside">
+
+### Aside: Search box versus search interface
+
+In this tutorial, I'm focusing on parsing what the user types into a search box: full-text search in its most basic sense.
+
+Your application's search interface may require more advanced search features, such as faceting or filtering. However, almost all applications with a search feature allow full-text search, so the code presented here is widely applicable. Additional search features can be layered into the query generation by sending additional input along with the query string.
+
+</div>
 
 That's why it's worth the time to build a simple query parser. Here's some advantages:
 
@@ -505,20 +515,36 @@ You can try out the `HeuristicParser` by running `bundle exec bin/parse Heuristi
 
 Now, thanks to Parslet, we have created a query parser that's purpose-built for our application. We fully control the syntax and Elasticsearch queries it makes, and we can add more heuristics that make sense for our application, but would never be part of a general-purpose query parser.
 
+## Next steps
+
+* Error handling and reporting
+* Limiting query complexity (e.g., maximum clauses)
+* Field configuration for query generation
+
 ## Resources
 
-The parslet tutorial is an excellent resource.
+Here are some great resources for learning more about Parslet.
 
-Talk about Parslet: https://www.youtube.com/watch?v=ET_POMJNWNs
+* The [Parslet documentation](http://kschiess.github.io/parslet/documentation.html) is an excellent resource, including a three part tutorial on building a simple interpreter.
+* Nathan Witmer's [four part series on parsing TOML with Parslet](https://zerowidth.com/2013/02/24/parsing-toml-in-ruby-with-parslet.html) is a great introduction to its features.
 
-https://jeffreykegler.github.io/Ocean-of-Awareness-blog/individual/2015/03/peg.html
+To learn more about parsing, check out the following resources:
+
+* [The language of languages](http://matt.might.net/articles/grammars-bnf-ebnf/) by Matt Might
+* [Parsing Expression Grammars: A Recognition-Based Syntactic Foundation](http://bford.info/pub/lang/peg.pdf) by Bryan Ford is the original paper on PEG paper
+* [PEG: Ambiguity, precision and confusion](https://jeffreykegler.github.io/Ocean-of-Awareness-blog/individual/2015/03/peg.html)
+
 
 https://www.codeproject.com/Articles/10115/Crafting-an-interpreter-Part-Parsing-and-Grammar
 
-http://matt.might.net/articles/grammars-bnf-ebnf/
+## Footnotes
 
-https://github.com/tabatkins/railroad-diagrams
+<div id="fn1"><sup>1</sup> OK, it was me.</div>
 
-Original PEG paper http://bford.info/pub/lang/peg.pdf
+<hr>
 
-<div id="fn1">[1] OK, it was me.</div>
+_Thanks to [Marshall Scorcio](https://twitter.com/marshallscorcio) and [Natthu Bharambe](https://www.facebook.com/natthu) for reviewing drafts of this tutorial. All errors are my own._
+
+_Additional thanks to [Tab Atkins](http://www.xanthir.com/) for his [terrific railroad diagram generator](https://github.com/tabatkins/railroad-diagrams)._
+
+
