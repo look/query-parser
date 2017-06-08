@@ -1,6 +1,6 @@
 # Build a query parser
 ## Why and how to generate Elasticsearch queries using Ruby and Parslet (DRAFT please do not distribute)
-By [Luke Francl](http://www.recursion.org) ([look@recursion.org](mailto:look@recursion.org)), XXX 2017
+_By [Luke Francl](http://www.recursion.org) ([look@recursion.org](mailto:look@recursion.org)), XXX 2017_
 
 More than a few times in my career, I've been part of a project that needed search. A Lucene-based search engine fits the bill. Somebody<sup>[1](#fn1)</sup> finds the search engine's built-in query parser, wires it up, and that is that. It seems like a good idea and it's easy.
 
