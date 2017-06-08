@@ -2,13 +2,13 @@
 ## Why and how to generate Elasticsearch queries using Ruby and Parslet (DRAFT please do not distribute)
 By [Luke Francl](http://www.recursion.org) ([look@recursion.org](mailto:look@recursion.org)), XXX 2017
 
-More than a few times in my career, I've been part of a project that needed search. A Lucene-based search engine fits the bill. Somebody<sup>[1](#fn1)</sup> finds the search engine's built-in query parser, wires it up, and that is that. It seems like a good idea and saves time up-front.
+More than a few times in my career, I've been part of a project that needed search. A Lucene-based search engine fits the bill. Somebody<sup>[1](#fn1)</sup> finds the search engine's built-in query parser, wires it up, and that is that. It seems like a good idea and it's easy.
 
-However, it's better to write your own query parser, for two reasons. First, **built-in parsers are too powerful**. They are confusing and allow users to trigger expensive queries that can kill performance. Second, **built-in parsers are too generic**. When you control your own parser, you can add features to it and customize _your_ application's search behavior for _your_ users.
+However, it's better to write your own query parser, for two reasons. First, **built-in parsers are too powerful**. They are confusing and allow users to trigger expensive queries that can kill performance. Second, **built-in parsers are too generic**. There is a tension between queries that are safe to execute and giving users a powerful query language -- which they expect. However, built-in query parsers tend to be all-or-nothing: either they are safe, or they provide extraordinary power that can be too dangerous to expose. You can't select only the features you need. When you control your own parser, you can add features to it and customize _your_ application's search behavior for _your_ users.
 
-This might sound daunting, but thanks to easy-to-use parser libraries, it's straightfoward.
+This might sound daunting, but thanks to easy-to-use parser libraries, it's straightforward. There is **no magic** in the built-in query parser. It constructs low-level queries the same way as using those objects directly.
 
-In this tutorial, we'll create of a query parser using the Ruby library [Parslet](http://kschiess.github.io/parslet/) that can generate queries for the Elasticsearch query DSL. Building up from a simple term parser, we'll add boolean operators, phrases, and close by adding an application-specific heuristic that would never make sense as part of a generic query parser.
+In this tutorial, we'll create a query parser that can generate queries for the [Elasticsearch query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html). Building up from a simple term parser, we'll add boolean operators, phrases, and close by adding an application-specific heuristic that would never make sense as part of a generic query parser.
 
 Want to skip to the code? Each step of the tutorial [is available as a self-contained file](https://github.com/look/query-parser) so it's easy to follow along.
 
@@ -17,14 +17,15 @@ Want to skip to the code? Each step of the tutorial [is available as a self-cont
 ## Table of contents
 
 * [Problems with generic query parsers](#problems_with_generic_query_parsers)
+  * [There is no magic: The power-safety gradient](#there_is_no_magic_the_safetypower_gradient)
   * [User input may contain special characters](#user_input_may_contain_special_characters)
-  * [Intentionally or unintentionally triggering advanced query features](#intentionally_or_unintentionally_triggering_advanced_query_features)
-  * [Huge number of terms](#huge_number_of_terms)
+  * [Users can trigger expensive query features](#users_can_trigger_expensive_query_features)
+  * [Users can submit a huge number of terms](#users_can_submit_a_huge_number_of_terms)
   * [Avoiding the foot gun](#avoiding_the_foot_gun)
 * [Take control of your search box](#take_control_of_your_search_box)
 * [Building a term-based query parser](#building_a_termbased_query_parserg)
   * [Defining a grammar](#defining_a_grammar)
-  * [Defining a grammar with Parslet](#defining_a_grammer_with_parslet)
+  * [Defining a grammar with Parslet](#defining_a_grammar_with_parslet)
   * [Building a parse tree](#building_a_parse_tree)
 * [Boolean queries: should, must, and must not](#boolean_queries_should_must_and_must_not)
 * [Phrase queries](#phrase_queries)
@@ -38,23 +39,96 @@ Want to skip to the code? Each step of the tutorial [is available as a self-cont
 
 Most search engines have a very powerful query parser built in, which can take a string and convert it to the underlying query objects. I'm most familiar with Lucene's query parser which is exposed by [Solr](https://wiki.apache.org/solr/SolrQuerySyntax) and [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html), but other search APIs provide similar functionality (for example, [Google Cloud Platform's search API](https://cloud.google.com/appengine/docs/standard/python/search/query_strings)).
 
-Exposing this interface directly to users has problems.
+### There is no magic: The safety-power gradient
+
+There is no magic in the Lucene query parser. It accepts as input a string, parses it and constructs lower-level queries. You can see this yourself if you [look at the code](https://github.com/apache/lucene-solr/blob/master/lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/builders/AnyQueryNodeBuilder.java) (that class adds `should` clauses to a boolean query.)
+
+The following Elasticsearch query looks simple:
+
+```json
+{
+  "query": {
+    "simple_query_string" : {
+        "query": "cat in the hat",
+        "fields": ["title"]
+    }
+  }
+}
+```
+
+But it is essentially the same as this longer query that has been implemented using [`bool`](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html) and [`match`](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query.html):
+
+```json
+{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "match": {
+            "title": {
+              "query": "cat"
+            }
+          }
+        },
+        {
+          "match": {
+            "title": {
+              "query": "in"
+            }
+          }
+        },
+        {
+          "match": {
+            "title": {
+              "query": "the"
+            }
+          }
+        },
+        {
+          "match": {
+            "title": {
+              "query": "hat"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+And `match` is implemented using [`term`](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-term-query.html), which is a query that [operates on the exact terms that are stored in Lucene's inverted index](https://www.elastic.co/guide/en/elasticsearch/reference/current/term-level-queries.html).
+
+The higher-level queries are all implemented in terms of the lower-level queries.
+
+    {{svg="safety-vs-power.svg"}}
+
+* `term`: Exact match for a single term
+* `match`: Constructs a `bool` query of analyzed terms (no parsing)
+* `simple_query_string`: Parses a string and constructs a `bool` query with phrases, fuzziness, and prefixes
+* `query_string`: Parses a very complicated syntax and constructs a `bool` query with phrases, fuzziness, prefixes, ranges, regular expressions, etc.
+    
+`match` is very safe to expose to users, but also limited in what it can do. The jump up to `simple_query_parser` adds a lot of features you may not need, and `query_string` is explicitly not recommended.
+    
+However, since there is no magic, there is no downside to generating lower-level queries in your application, rather than having Elasticsearch do it.
 
 ### User input may contain special characters
 
-The built-in query parser has its own syntax, which users may not understand. For example, [Elasticsearch's `query_string` syntax reserves](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_reserved_characters) `+`, `-`, `=`, `&&`, `||`, `>`, `<`, `!`, `(`, `)`, `{`, `}`, `[`, `]`, `^`, `\"`, `~`, `*`, `?`, `:`, `\`, and `/`.
+The built-in query parser has its own syntax, which users may not understand. For example, [Elasticsearch's `query_string` syntax reserves](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_reserved_characters) `+`, `-`, `=`, `&&`, `||`, `>`, `<`, `!`, `(`, `)`, `{`, `}`, `[`, `]`, `^`, `"`, `~`, `*`, `?`, `:`, `\`, and `/`.
 
-Using the syntax incorrectly will either trigger an error or lead to unexpected results. For example, the user query `title:cat "cat:hat"` should be escaped as `title\:cat "cat:hat"`. Escaping characters in a query string with regular expressions ranges from difficult to impossible.
+Using the syntax incorrectly will either trigger an error or lead to unexpected results. For example, to prevent the query string `alpha:cat "cat:hat"` from generating a query limiting the search for `cat` to the field `alpha` (which might not even exist), it should be escaped as `alpha\:cat "cat:hat"`. 
 
-Also, some characters [can't be escaped](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_reserved_characters):
+Escaping characters in a query string with regular expressions ranges from difficult to impossible. And some characters [can't be escaped, period](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_reserved_characters):
 
-> `<` and `>` can’t be escaped at all. The only way to prevent them from attempting to create a range query is to remove them from the query string entirely.
+> `<` and `>` can't be escaped at all. The only way to prevent them from attempting to create a range query is to remove them from the query string entirely.
 
-### Intentionally or unintentionally triggering advanced query features
+Exposing `query_string` to end users is now explicitly discouraged. Considering its complexity and lack of composability, it's not a great interface for programmers, either.
 
-Related to the above point, users can intentionally or unintentionally trigger advanced query features. For example, limiting a search term to a single field with `field_name:term` or boosting a term with `term^10`. The results range from confusing to malicious.
+### Users can trigger expensive query features
 
-Some operators can cause **very** expensive queries. In Lucene-based tools, [certain queries are very expensive](https://lucene.apache.org/core/6_5_0/core/org/apache/lucene/search/AutomatonQuery.html), because they require enumerating terms from the term dictionary in order to generate the query. A query with wildcards (especially a leading wildcard!) or regular expression [will do this](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_regular_expressions):
+Related to the above point, users can intentionally or unintentionally trigger advanced query features. For example, limiting a search term to a single field with `field_name:term` or boosting a term with `term^10`. The results can range from confusing to malicious.
+
+Some of these advanced operators can cause **very** expensive queries. In Lucene-based tools, [certain queries are very expensive](https://lucene.apache.org/core/6_5_0/core/org/apache/lucene/search/AutomatonQuery.html) because they require enumerating terms from the term dictionary in order to create the low-level query objects. A [query with a wildcard](https://www.quora.com/What-is-the-algorithm-used-by-Lucenes-PrefixQuery) (especially a leading wildcard!) or regular expression may require reading **many** terms. Regular expressions are [particularly dangerous](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_regular_expressions):
 
 > A query string such as the following would force Elasticsearch to visit every term in the index:
 >
@@ -62,9 +136,9 @@ Some operators can cause **very** expensive queries. In Lucene-based tools, [cer
 >
 > Use with caution!
 
-Range queries may seem harmless, but they [also have this problem](http://george-stathis.com/2013/10/18/setting-the-booleanquery-maxclausecount-in-elasticsearch/) (beware wide range queries on high resolution data!).
+Range queries may seem harmless, but they [also have this problem](http://george-stathis.com/2013/10/18/setting-the-booleanquery-maxclausecount-in-elasticsearch/). Beware queries for wide ranges on high resolution data!
 
-### Huge number of terms
+### Users can submit a huge number of terms
 
 Passing a user input directly to the query parser can be dangerous for more prosaic reasons. For example, the user may simply enter a large number of terms. This will generate a query with many clauses, which will take longer to execute. Truncating the query string is a simple work around, but if you truncate in the middle of an expression (for example, by breaking a quoted phrase or parenthetical expression), it could lead to an invalid query.
 
@@ -87,15 +161,15 @@ This syntax is both complicated and may let users generate expensive queries.
 
 ## Take control of your search box
 
-Often, when you go down the built-in query parser route, you'll get something working quickly, but later run into problems. Users (or your exception monitoring software) complains that queries don't work; or extremely expensive queries slow the service down for everyone.
+Often, when you go down the built-in query parser route, you'll get something working quickly, but later run into problems. Users (or your exception monitoring software) complain that queries don't work; or extremely expensive queries slow the service down for everyone.
 
 <div class="aside">
 
 ### Aside: Search box versus search interface
 
-In this tutorial, I'm focusing on parsing what the user types into a search box: full-text search in its most basic sense.
+This tutorial focuses on parsing what the user types into a search box: full-text search in its most basic sense.
 
-Your application's search interface may require more advanced search features, such as faceting or filtering. However, almost all applications with a search feature allow full-text search, so the code presented here is widely applicable. Additional search features can be layered into the query generation by sending additional input along with the query string.
+Your application's search interface may require more advanced search features, such as faceting or filtering. However, almost all applications with search allow full-text search, so the code presented here is widely applicable. Additional search features can be layered into the query generation process by sending additional input along with the query string as part of your search API.
 
 </div>
 
@@ -104,10 +178,10 @@ That's why it's worth the time to build a simple query parser. Here's some advan
 * Limit queries to the features _you_ need
 * Handle expensive queries up front (for example, by limiting the number of terms that can be searched for)
 * Better and faster error feedback for users
-* perform programmatic modification of search queries before running them (for example, synonym expansion, spelling correction, or removing problematic characters)
+* Allows programmatic modification of search queries before running them (applications include query optimization, synonym expansion, spelling correction, or removing problematic characters)
 * Build in heuristics specific to your application that are not possible for a general-purpose parser
 
-In this tutorial, I'll be walking through the creation of a query parser using the Ruby library [Parslet](http://kschiess.github.io/parslet/) that can generate queries for the Elasticsearch query DSL. It will start simple, but build up to supporting terms, boolean operators (`-` and `+`), and phrases. This is a good 80% solution that will work well for most use cases. It's more limited than the syntax supported by `SimpleQueryParser`, but the syntax is controlled by _our_ code now, so we can add new features if _we_ need to.
+In this tutorial, I'll be walking through the creation of a query parser using the Ruby library [Parslet](http://kschiess.github.io/parslet/) that can generate queries for the Elasticsearch query DSL. Our query parser will be more limited than the syntax supported by `SimpleQueryParser`, but the syntax is controlled by _our_ code now, so we can add new features if _we_ need to.
 
 ## Building a term-based query parser
 
@@ -515,6 +589,7 @@ Now, thanks to Parslet, we have created a query parser that's purpose-built for 
 * Error handling and reporting
 * Limiting query complexity (e.g., maximum clauses)
 * Field configuration for query generation
+* Query optimization: ideas: perform phrase query for all input with a should block -- documents with exact phrase will match higher.
 
 ## Resources
 
@@ -538,7 +613,7 @@ http://mousepeg.sourceforge.net/
 
 <hr>
 
-_Thanks to [Marshall Scorcio](https://twitter.com/marshallscorcio) and [Natthu Bharambe](https://www.facebook.com/natthu) for reviewing drafts of this tutorial. All errors are my own._
+_Thanks to [Marshall Scorcio](https://twitter.com/marshallscorcio), [Natthu Bharambe](https://www.facebook.com/natthu), and [Quin Hoxie](http://qhoxie.com/) for reviewing drafts of this tutorial. All errors are my own._
 
 _Additional thanks to [Tab Atkins](http://www.xanthir.com/) for his [terrific railroad diagram generator](https://github.com/tabatkins/railroad-diagrams)._
 
