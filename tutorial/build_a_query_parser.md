@@ -223,6 +223,14 @@ Where `alphanumeric` is defined as the characters `[a-zA-Z0-9]`. The definitions
 
 ### Defining a grammar with Parslet
 
+<div class="aside">
+
+### Aside: Parsing libraries in other languages
+
+This tutorial uses Ruby, but there are great, easy-to-use PEG parsing libraries available for most languages. JavaScript has XXX, Python has XXX, and Java XXX.
+
+</div>
+
 BNF defines the rules for a generative grammar for a context-free language, which means it can be ambiguous. Parsing algorithms transform the grammar into a parser that can produce a parse tree, with special cases to handle the ambiguity of a context-free grammar. 
 
 Another way of parsing is to start with an analytic grammar. The [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_grammar) (PEG) looks like BNF, but the choice operator always picks the first match. PEGs cannot be ambiguous.
