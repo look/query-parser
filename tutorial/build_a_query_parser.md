@@ -644,4 +644,4 @@ http://mousepeg.sourceforge.net/
 
 _Thanks to [Marshall Scorcio](https://twitter.com/marshallscorcio), [Natthu Bharambe](https://www.facebook.com/natthu), and [Quin Hoxie](http://qhoxie.com/) for reviewing drafts of this tutorial. All errors are my own._
 
-_Additional thanks to [Tab Atkins](http://www.xanthir.com/) for his [terrific railroad diagram generator](https://github.com/tabatkins/railroad-diagrams)._
+_Additional thanks to [Kaspar Schiess](http://www.absurd.li/) for creating Parslet and [Tab Atkins](http://www.xanthir.com/) for his [terrific railroad diagram generator](https://github.com/tabatkins/railroad-diagrams)._
