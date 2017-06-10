@@ -23,7 +23,7 @@ Want to skip to the code? Each step of the tutorial [is available as a self-cont
   * [Users can submit a huge number of terms](#users_can_submit_a_huge_number_of_terms)
   * [Avoiding the foot gun](#avoiding_the_foot_gun)
 * [Take control of your search box](#take_control_of_your_search_box)
-* [Building a term-based query parser](#building_a_termbased_query_parserg)
+* [Building a term-based query parser](#building_a_termbased_query_parser)
   * [Defining a grammar](#defining_a_grammar)
   * [Defining a grammar with Parslet](#defining_a_grammar_with_parslet)
   * [Building a parse tree](#building_a_parse_tree)
@@ -31,6 +31,10 @@ Want to skip to the code? Each step of the tutorial [is available as a self-cont
 * [Phrase queries](#phrase_queries)
 * [Going beyond generic query parsers: Adding heuristics](#going_beyond_generic_query_parsers_adding_heuristics)
 * [Next steps](#next_steps)
+  * [Improving search relevance](#improving_search_relevance)
+  * [Error handling, reporting, and fallback](#error_handling_reporting_and_fallback)
+  * [Limiting query complexity](#limiting_query_complexity)
+  * [Field configuration for query generation](#field_configuration_for_query_generation)
 * [Resources](#resources)
 
 </div>
@@ -592,10 +596,29 @@ Now, thanks to Parslet, we have created a query parser that's purpose-built for 
 
 ## Next steps
 
-* Error handling and reporting
-* Limiting query complexity (e.g., maximum clauses)
-* Field configuration for query generation
-* Query optimization: ideas: perform phrase query for all input with a should block -- documents with exact phrase will match higher.
+You can take the code in many directions from here. Here's some ideas.
+
+### Improving search relevance
+
+Our query parser does not need to be limited to a 1-to-1 correspondence with Elasticsearch. You may be able to improve search relevance by issuing the same query different ways. For example, the query <span class="query-string">cat in the hat</span> should match documents containing that text _as a phrase_ higher than documents containing the terms _individually_. You can implement this by creating a `bool` query with a `match_phrase` clause along with the `match` clauses for the individual terms.
+
+### Error handling, reporting, and fallback
+
+The current query parser raises an exception if the query can't be parsed. You can catch this in your application before sending the query to Elasticsearch and report the error the user. For a more user-friendly solution, you could try to correct the error in the input and re-parse or fallback to a simple `match` query when the input cannot be parsed.
+
+### Limiting query complexity
+
+We talked about limiting expensive queries, but the current parser doesn't do that yet. There are a few things to consider:
+
+* Total number of clauses
+* Number of words to allow in a phrase
+* Overall query length
+
+### Field configuration for query generation
+
+To be truly useful, the query generator needs to know the schema of the [mapping](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html) it is building Elasticsearch query DSL for. In the example code, we hard-coded a `text` field called `title` and an `integer` field called `publication_year`. A real schema will probably have many more fields.
+
+Additional field types open up new search opportunities, too. Imagine your mapping has a [`keyword`](https://www.elastic.co/guide/en/elasticsearch/reference/current/keyword.html) field called `sku` for storing the exact text of SKUs. By adding SKU detection to the query parser, you could generate a [`term`](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-term-query.html) query clause for the `sku` field when a user types in an SKU.
 
 ## Resources
 
