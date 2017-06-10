@@ -225,9 +225,9 @@ Where `alphanumeric` is defined as the characters `[a-zA-Z0-9]`. The definitions
 
 <div class="aside">
 
-### Aside: Parsing libraries in other languages
+### Aside: PEG parsing in other languages
 
-This tutorial uses Ruby, but there are great, easy-to-use PEG parsing libraries available for most languages. JavaScript has XXX, Python has XXX, and Java XXX.
+This tutorial uses Ruby, but there are great, easy-to-use PEG parsing libraries available for most languages. JavaScript has [PEG.js](https://pegjs.org/), Python has [Arpeggio](http://www.igordejanovic.net/Arpeggio/) and [Parsimonious](https://github.com/erikrose/parsimonious#a-little-about-peg-parsers), and Java has [Parboiled](https://github.com/sirthias/parboiled/wiki).
 
 </div>
 
