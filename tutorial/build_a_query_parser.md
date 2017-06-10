@@ -41,7 +41,7 @@ Most search engines have a very powerful query parser built in, which can take a
 
 ### There is no magic: The safety-power gradient
 
-There is no magic in the Lucene query parser. It accepts as input a string, parses it and constructs lower-level queries. You can see this yourself if you [look at the code](https://github.com/apache/lucene-solr/blob/master/lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/builders/AnyQueryNodeBuilder.java) (that class adds `should` clauses to a boolean query.)
+There is no magic in the Lucene query parser. It accepts as input a string, parses it and constructs lower-level queries. You can see this yourself if you [look at the code](https://github.com/apache/lucene-solr/blob/master/lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/builders/AnyQueryNodeBuilder.java) (the linked-to class adds `should` clauses to a boolean query.)
 
 The following Elasticsearch query looks simple:
 
@@ -116,7 +116,7 @@ However, since there is no magic, there is no downside to generating lower-level
 
 The built-in query parser has its own syntax, which users may not understand. For example, [Elasticsearch's `query_string` syntax reserves](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_reserved_characters) `+`, `-`, `=`, `&&`, `||`, `>`, `<`, `!`, `(`, `)`, `{`, `}`, `[`, `]`, `^`, `"`, `~`, `*`, `?`, `:`, `\`, and `/`.
 
-Using the syntax incorrectly will either trigger an error or lead to unexpected results. For example, to prevent the query string `alpha:cat "cat:hat"` from generating a query limiting the search for `cat` to the field `alpha` (which might not even exist), it should be escaped as `alpha\:cat "cat:hat"`. 
+Using the syntax incorrectly will either trigger an error or lead to unexpected results. For example, to prevent the query string <span class="query-string">alpha:cat "cat:hat"</span> from generating a query limiting the search for <span class="query-string">cat</span> to the field `alpha` (which might not exist), it should be escaped as <span class="query-string">alpha\:cat "cat:hat"</span>.
 
 Escaping characters in a query string with regular expressions ranges from difficult to impossible. And some characters [can't be escaped, period](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_reserved_characters):
 
@@ -126,7 +126,7 @@ Exposing `query_string` to end users is now explicitly discouraged. Considering 
 
 ### Users can trigger expensive query features
 
-Related to the above point, users can intentionally or unintentionally trigger advanced query features. For example, limiting a search term to a single field with `field_name:term` or boosting a term with `term^10`. The results can range from confusing to malicious.
+Related to the above point, users can intentionally or unintentionally trigger advanced query features. For example, limiting a search term to a single field with <span class="query-string">field_name:term</span> or boosting a term with <span class="query-string">term^10</span>. The results can range from confusing to malicious.
 
 Some of these advanced operators can cause **very** expensive queries. In Lucene-based tools, [certain queries are very expensive](https://lucene.apache.org/core/6_5_0/core/org/apache/lucene/search/AutomatonQuery.html) because they require enumerating terms from the term dictionary in order to create the low-level query objects. A [query with a wildcard](https://www.quora.com/What-is-the-algorithm-used-by-Lucenes-PrefixQuery) (especially a leading wildcard!) or regular expression may require reading **many** terms. Regular expressions are [particularly dangerous](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_regular_expressions):
 
@@ -185,7 +185,7 @@ In this tutorial, I'll be walking through the creation of a query parser using t
 
 ## Building a term-based query parser
 
-At first, the query parser will be extremely limited. Given input like "cat in the hat" it will be able to generate this Elasticsearch query:
+At first, the query parser will be extremely limited. Given input like <span class="query-string">cat in the hat</span> it will be able to generate this Elasticsearch query:
 
 ```json
 {
@@ -363,7 +363,7 @@ OK, that was fun, but this is a a roundabout way of generating a simple Elastics
 
 Unlike the boolean logic you may be familiar with, Lucene-based systems define three types of boolean clauses: **should**, which means that a clause ought to match, but does not reject documents that don't; **must**, which requires documents match the clause; and **must not**, which requires documents do not match the clause. These correspond to "or", "and", and "not", respectively.
 
-In a query language, that might look like this: `cat -hat +cradle`. I like using `+` and `-` for this rather than `AND` and `OR` because I think it looks better and users don't have to worry about dangling clauses (for example, `foo AND`).
+In a query language, that might look like <span class="query-string">cat -hat +cradle</span>. I like using `+` and `-` for this rather than `AND` and `OR` because I think it looks better and users are less likely to accidentally trigger dangling operators such as <span class="query-string">foo AND</span>.
 
 To support boolean logic, we'll add a new entity to our parse tree: a clause. A clause has an optional operator (`+` or `-`) and a term.
 
@@ -454,9 +454,7 @@ Give it a try!
 
 ## Phrase queries
 
-Another important feature for a query parser is to be able to match phrases. In Elasticsearch, this is done with a [match_phrase](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query-phrase.html) query. A `match_phrase` query can be used as input for a `bool` query, just like we previously used the `match` query. In our query language, an example query might look like:
-
-    "cat in the hat" -green +ham
+Another important feature for a query parser is to be able to match phrases. In Elasticsearch, this is done with a [match_phrase](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query-phrase.html) query. A `match_phrase` query can be used as input for a `bool` query, just like we previously used the `match` query. In our query language, an example query might look like <span class="query-string">"cat in the hat" -green +ham</span>.
 
     {{svg="phrase-query.svg"}}
 
@@ -514,9 +512,9 @@ With these features, this is a respectable query parser. It supports a simple sy
 
 So far, what we've built has been aimed at providing a simple user experience -- and preventing harmful queries. However, another benefit of building your own query parser is that it is specific to your application, so you can tailor it to your domain.
 
-For example, let's say we are building search for a database of books. We know a lot about the data, and can develop heuristics for users' search input. Let's say that we know all publication dates for books in the catalog are from the twentieth and early twenty-first century. We can turn a search term like "1970" or "1970s" into a date range query for the dates 1970 - 1979.
+For example, let's say we are building search for a database of books. We know a lot about the data, and can develop heuristics for users' search input. Let's say that we know all publication dates for books in the catalog are from the twentieth and early twenty-first century. We can turn a search term like <span class="query-string">1970</span> or <span class="query-string">1970s</span> into a date range query for the dates 1970 to 1979.
 
-For the search `cats 1970s` the Elasticsearch query DSL we want to generate is:
+For the search <span class="query-string">cats 1970s</span> the Elasticsearch query DSL we want to generate is:
 
 ```json
 {
@@ -616,5 +614,3 @@ http://mousepeg.sourceforge.net/
 _Thanks to [Marshall Scorcio](https://twitter.com/marshallscorcio), [Natthu Bharambe](https://www.facebook.com/natthu), and [Quin Hoxie](http://qhoxie.com/) for reviewing drafts of this tutorial. All errors are my own._
 
 _Additional thanks to [Tab Atkins](http://www.xanthir.com/) for his [terrific railroad diagram generator](https://github.com/tabatkins/railroad-diagrams)._
-
-
