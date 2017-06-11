@@ -1,7 +1,7 @@
 @echo off
 
 SETLOCAL enabledelayedexpansion
-TITLE Elasticsearch 5.3.0
+TITLE Elasticsearch 5.4.1
 
 SET params='%*'
 
@@ -62,7 +62,7 @@ SET HOSTNAME=%COMPUTERNAME%
 
 if "%ES_JVM_OPTIONS%" == "" (
 rem '0' is the batch file, '~dp' appends the drive and path
-set ES_JVM_OPTIONS=%~dp0\..\config\jvm.options
+set "ES_JVM_OPTIONS=%~dp0\..\config\jvm.options"
 )
 
 @setlocal

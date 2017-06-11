@@ -1,7 +1,7 @@
 @echo off
 SETLOCAL enabledelayedexpansion
 
-TITLE Elasticsearch Service 5.3.0
+TITLE Elasticsearch Service 5.4.1
 
 rem TODO: remove for Elasticsearch 6.x
 set bad_env_var=0
@@ -77,7 +77,7 @@ if EXIST "%EXECUTABLE%" goto okExe
 echo elasticsearch-service-(x86|x64).exe was not found...
 
 :okExe
-set ES_VERSION=5.3.0
+set ES_VERSION=5.4.1
 
 if "%LOG_DIR%" == "" set LOG_DIR=%ES_HOME%\logs
 
