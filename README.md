@@ -61,10 +61,6 @@ The program defaults to the `HeuristicParser` because it is the most featureful.
 bundle exec bin/parse BooleanTermParser
 ```
 
-### Query execution console
-
-TBD.
-
 ## License
 
 The source code in this repository is released into the public domain.
@@ -77,3 +73,4 @@ The tutorial is under copyright and cannot be republished without my permission.
 - [] update to Elasticsearch 5.4
 - [] decade fix -- requires lookahead to make sure decade actually is. Need to backport fix
 - [] performance?
+- [] final copy edits
