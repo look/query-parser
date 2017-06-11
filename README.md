@@ -75,6 +75,5 @@ The tutorial is under copyright and cannot be republished without my permission.
 
 - [] modicum of responsiveness
 - [] update to Elasticsearch 5.4
-- [] Add conclusion
 - [] decade fix -- requires lookahead to make sure decade actually is. Need to backport fix
 - [] performance?

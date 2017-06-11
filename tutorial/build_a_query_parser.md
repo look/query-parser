@@ -35,7 +35,7 @@ Want to skip to the code? Each step of the tutorial [is available as a self-cont
   * [Error handling, reporting, and fallback](#error_handling_reporting_and_fallback)
   * [Limiting query complexity](#limiting_query_complexity)
   * [Field configuration for query generation](#field_configuration_for_query_generation)
-* [Resources](#resources)
+* [Further reading](#further_reading)
 
 </div>
 
@@ -620,7 +620,7 @@ To be truly useful, the query generator needs to know the schema of the [mapping
 
 Additional field types open up new search opportunities, too. Imagine your mapping has a [`keyword`](https://www.elastic.co/guide/en/elasticsearch/reference/current/keyword.html) field called `sku` for storing the exact text of SKUs. By adding SKU detection to the query parser, you could generate a [`term`](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-term-query.html) query clause for the `sku` field when a user types in an SKU.
 
-## Resources
+## Further reading
 
 Here are some great resources for learning more about Parslet.
 
