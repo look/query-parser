@@ -72,7 +72,7 @@ task :build do
   end
 
   # TODO: Figure out a better way to create a layout for a markdown document
-  compiled = layout.gsub('<body></body>', "<body>#{doc.to_html}#{generated_at_html}</body>")
+  compiled = layout.gsub('{{CONTENT}}', "#{doc.to_html}#{generated_at_html}")
 
   FileUtils.mkdir_p('build')
 

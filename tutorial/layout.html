@@ -2,15 +2,25 @@
 <html>
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title></title>
     <style>
      body {
        font-family: Helvetica;
        font-size: 20px;
        line-height: 1.2;
-       width: 920px;
+       min-width: 320px;
+       width: 100%;
+       margin: 0;
+       padding: 0;
+     }
+
+     #content {
+       max-width: 920px;
        margin-left: auto;
        margin-right: auto;
+       padding-left: 5px;
+       padding-right: 5px;
      }
 
      code {
@@ -31,17 +41,35 @@
        padding-left: 15px;
      }
 
+     svg {
+       max-width: 100%;
+     }
+
      div.aside {
        font-size: 80%;
        background: aliceblue;
-       width: 400px;
-       float: right;
-       margin-left: 20px;
-       padding: 20px 20px 0 20px;
+       padding: 20px 20px 0px 20px;
      }
 
      div.aside h3 {
        margin: 0;
+     }
+
+     @media screen and (max-width: 600px) {
+       div.aside {
+         width: 100%;
+         box-sizing: border-box;
+         padding-bottom: 1px;
+       }
+     }
+
+     @media screen and (min-width: 600px) {
+       div.aside {
+         min-width: 300px;
+         max-width: 400px;
+         float: right;
+         margin-left: 20px;
+       }
      }
 
      span.query-string {
@@ -57,6 +85,10 @@
        font-style: italic;
        font-size: 80%;
        color: #999;
+     }
+
+     pre {
+       overflow: auto;
      }
 
      .highlight table td { padding: 5px; }
@@ -306,5 +338,5 @@
      }
     </style>
   </head>
-  <body></body>
+  <body><div id="content">{{CONTENT}}</div></body>
 </html>
