@@ -25,7 +25,7 @@ Want to skip to the code? Each step of the tutorial [is available as a self-cont
   * [Avoiding the foot gun](#avoiding_the_foot_gun)
 * [Take control of your search box](#take_control_of_your_search_box)
 * [Building a term-based query parser](#building_a_termbased_query_parser)
-  * [Defining a grammar](#defining_a_grammar)
+  * [Defining a query language grammar with BNF](#defining_a_query_language_grammar_with_bnf)
   * [Defining a grammar with Parslet](#defining_a_grammar_with_parslet)
   * [Building a parse tree](#building_a_parse_tree)
 * [Boolean queries: should, must, and must not](#boolean_queries_should_must_and_must_not)
@@ -207,7 +207,7 @@ At first, the query parser will be extremely limited. Given input like <span cla
 
 This is a [match](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query.html) query, which does not interpret its input. You may notice that...we could just take the user input and put it in JSON structure. But we need to start somewhere!
 
-### Defining a grammar
+### Defining a query language grammar with BNF
 
 First, let's define a grammar for our simple query language using [Backus–Naur form](https://en.wikipedia.org/wiki/Backus%E2%80%93Naur_form) (BNF).
 
@@ -236,9 +236,9 @@ This tutorial uses Ruby, but there are great, easy-to-use PEG parsing libraries 
 
 </div>
 
-BNF defines the rules for a generative grammar for a context-free language, which means it can be ambiguous. Parsing algorithms transform the grammar into a parser that can produce a parse tree, with special cases to handle the ambiguity of a context-free grammar. 
+Building a parser with traditional tools means defining a generative grammar with BNF (or, more likely, [extended BNF](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form)), writing a lexer to convert input into tokens, and then feeding the tokens into a parser generator. Because BNF describes a context-free grammar, various limitations must be observed to avoid ambiguity and poor performance.
 
-Another way of parsing is to start with an analytic grammar. The [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_grammar) (PEG) looks like BNF, but the choice operator always picks the first match. PEGs cannot be ambiguous.
+The [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_grammar) model makes parsers easier to write by eliminating the separate lexing step. In practice, a PEG parser looks like an executable BNF grammar. One important caveat is that PEGs are _recognition-based_ rather than _generative_. Unlike a context-free grammar, a PEG cannot be ambiguous. This leads to trade-offs in how you define the rules for your grammar.
 
 [Parslet](http://kschiess.github.io/parslet/) is a Ruby library for generating PEG-style parsers. You define the rules of your grammar, and Parslet creates a parser that returns a parse tree for input. Then you define a transformer that takes the parse tree and converts it to an abstract syntax tree (AST). Finally, your code evaluates the AST to produce a result.
 
