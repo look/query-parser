@@ -1,11 +1,11 @@
 <h1 class="title">Build a query parser</h1>
-<h2 class="subtitle">Why and how, with an example in Ruby and Parslet</h2>
+<h2 class="subtitle">Why and how, with an example using Ruby, Parslet, and Elasticsearch</h2>
 
 _By [Luke Francl](http://www.recursion.org) ([look@recursion.org](mailto:look@recursion.org)), XXX 2017_
 
-More than a few times in my career, I've been part of a project that needed search. A Lucene-based search engine fits the bill. Somebody<sup>[1](#fn1)</sup> finds the search engine's built-in query parser, wires it up, and that is that. It seems like a good idea and it's easy.
+More than a few times in my career, I've been part of a project that needed search. A Lucene-based search engine fits the bill. Somebody<sup id="fn1-body">[1](#fn1)</sup> finds the search engine's built-in query parser, wires it up, and that is that. It seems like a good idea and it's easy.
 
-However, it's better to write your own query parser, for two reasons. First, **built-in parsers are too powerful**. They are confusing and allow users to trigger expensive queries that can kill performance. Second, **built-in parsers are too generic**. There is a tension between queries that are safe to execute and giving users a powerful query language -- which they expect. However, built-in query parsers tend to be all-or-nothing: either they are safe, or they provide extraordinary power that can be too dangerous to expose. You can't select only the features you need. When you control your own parser, you can add features to it and customize _your_ application's search behavior for _your_ users.
+However, it's better to write your own query parser, for two reasons. First, **built-in parsers are too powerful**. They are confusing and allow users to trigger expensive queries that kill performance. Second, **built-in parsers are too generic**. There is a tension between queries that are safe to execute and giving users a powerful query language&mdash;which they expect. However, built-in query parsers tend to be all-or-nothing: either they are safe, or they provide extraordinary power that can be too dangerous to expose. You can't select only the features you need. When you control your own parser, you can add features to it and customize _your_ application's search behavior for _your_ users.
 
 This might sound daunting, but thanks to easy-to-use parser libraries, it's straightforward. There is **no magic** in the built-in query parser. It constructs low-level queries the same way as using those objects directly.
 
@@ -244,7 +244,7 @@ The [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expressio
 
 Parsing expression grammars have the following characteristics:
 
-* Cannot be ambiguous -- the first alternative that matches is always chosen
+* Cannot be ambiguous: the first alternative that matches is always chosen
 * Operators consume as much input as matches and do not backtrack
 * Allows infinite amount of look-ahead
 * Can be parsed in linear time with memoization
@@ -532,7 +532,7 @@ With these features, this is a respectable query parser. It supports a simple sy
 
 ## Going beyond generic query parsers: Adding heuristics
 
-So far, what we've built has been aimed at providing a simple user experience -- and preventing harmful queries. However, another benefit of building your own query parser is that it is specific to your application, so you can tailor it to your domain.
+So far, what we've built has been aimed at providing a simple user experience&mdash;and preventing harmful queries. However, another benefit of building your own query parser is that it is specific to your application, so you can tailor it to your domain.
 
 For example, let's say we are building search for a database of books. We know a lot about the data, and can develop heuristics for users' search input. Let's say that we know all publication dates for books in the catalog are from the twentieth and early twenty-first century. We can turn a search term like <span class="query-string">1970</span> or <span class="query-string">1970s</span> into a date range query for the dates 1970 to 1979.
 
@@ -647,7 +647,7 @@ To learn more about parsing, check out the following resources:
 
 ## Footnotes
 
-<div id="fn1"><sup>1</sup> OK, it was me.</div>
+<div id="fn1"><a href="#fn1-body"><sup>1</sup></a> OK, it was me.</div>
 
 <hr>
 
