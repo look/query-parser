@@ -236,9 +236,18 @@ This tutorial uses Ruby, but there are great, easy-to-use PEG parsing libraries 
 
 </div>
 
-Building a parser with traditional tools means defining a generative grammar with BNF (or, more likely, [extended BNF](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form)), writing a lexer to convert input into tokens, and then feeding the tokens into a parser generator. Because BNF describes a context-free grammar, various limitations must be observed to avoid ambiguity and poor performance.
+BNF describes a [context-free grammar](https://en.wikipedia.org/wiki/Context-free_grammar) (CFG), which is a set of rules that can be used to generate any legal expression of the language. Because of its origins in natural, human languages, CFGs can be ambiguous. Parsing CFGs in the general case is slow (The best known algorithms for parsing CFGs run in <em>O(n<sup>3</sup>)</em> time). This makes CFGs inappropriate for machine-oriented languages. Therefore, [various](https://en.wikipedia.org/wiki/Deterministic_context-free_language) [limitations](https://en.wikipedia.org/wiki/LL_grammar) must be observed to avoid ambiguity and poor performance (despite this, [ambiguous parse trees still happen](https://en.wikipedia.org/wiki/Dangling_else)). 
 
-The [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_grammar) model makes parsers easier to write by eliminating the separate lexing step. In practice, a PEG parser looks like an executable BNF grammar. One important caveat is that PEGs are _recognition-based_ rather than _generative_. Unlike a context-free grammar, a PEG cannot be ambiguous. This leads to trade-offs in how you define the rules for your grammar.
+Building a parser with traditional tools means defining a generative grammar with BNF (or, more likely, [extended BNF](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form)), writing a lexer to convert input into tokens, and then feeding the tokens into a parser generator. 
+
+The [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_grammar) (PEG) model makes parsers easier to write by eliminating the separate lexing step. In practice, a PEG parser _looks_ like an executable BNF grammar, but PEGs are _recognition-based_ rather than _generative_ like CFGs. 
+
+Parsing expression grammars have the following characteristics:
+
+* Cannot be ambiguous -- the first alternative that matches is always chosen
+* Operators consume as much input as matches and do not backtrack
+* Allows infinite amount of look-ahead
+* Can be parsed in linear time with memoization
 
 [Parslet](http://kschiess.github.io/parslet/) is a Ruby library for generating PEG-style parsers. You define the rules of your grammar, and Parslet creates a parser that returns a parse tree for input. Then you define a transformer that takes the parse tree and converts it to an abstract syntax tree (AST). Finally, your code evaluates the AST to produce a result.
 
