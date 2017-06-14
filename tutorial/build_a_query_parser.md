@@ -640,11 +640,10 @@ Here are some great resources for learning more about Parslet.
 To learn more about parsing, check out the following resources:
 
 * [The language of languages](http://matt.might.net/articles/grammars-bnf-ebnf/) by Matt Might
-* [Parsing Expression Grammars: A Recognition-Based Syntactic Foundation](http://bford.info/pub/lang/peg.pdf) by Bryan Ford is the original paper formalizing PEG parsers.
-* [PEG: Ambiguity, precision and confusion](https://jeffreykegler.github.io/Ocean-of-Awareness-blog/individual/2015/03/peg.html) by Jeffrey Kegler describes some of the tricky problems with PEG parsers.
-
-https://www.codeproject.com/Articles/10115/Crafting-an-interpreter-Part-Parsing-and-Grammar
-http://mousepeg.sourceforge.net/
+* [Parsing Expression Grammars: A Recognition-Based Syntactic Foundation](http://bford.info/pub/lang/peg.pdf) by Bryan Ford is the original paper formalizing PEG parsers
+* [PEG: Ambiguity, precision and confusion](https://jeffreykegler.github.io/Ocean-of-Awareness-blog/individual/2015/03/peg.html) by Jeffrey Kegler describes some of the tricky problems with PEG parsers
+* [Mouse: from Parsing Expressions to a practical parser](http://mousepeg.sourceforge.net/) has a good discussion about PEG and packrat parsing
+* [Crafting an interpreter Part 1 - Parsing and Grammars](https://www.codeproject.com/Articles/10115/Crafting-an-interpreter-Part-Parsing-and-Grammar) builds a PEG parser in C++ and has discussion about performance and ease of use
 
 ## Footnotes
 
