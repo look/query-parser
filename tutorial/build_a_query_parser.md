@@ -1,7 +1,7 @@
 <h1 class="title">Build a query parser</h1>
-<h2 class="subtitle">Why and how, with an example using Ruby, Parslet, and Elasticsearch</h2>
+<h2 class="subtitle">Why and how, with a tutorial using Ruby, Parslet, and Elasticsearch</h2>
 
-_By [Luke Francl](http://www.recursion.org) ([look@recursion.org](mailto:look@recursion.org)), XXX 2017_
+_By [Luke Francl](http://www.recursion.org) ([look@recursion.org](mailto:look@recursion.org)), June 2017_
 
 More than a few times in my career, I've been part of a project that needed search. A Lucene-based search engine fits the bill. Somebody<sup id="fn1-body">[1](#fn1)</sup> finds the search engine's built-in query parser, wires it up, and that is that. It seems like a good idea and it's easy.
 
