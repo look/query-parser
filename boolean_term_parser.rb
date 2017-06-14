@@ -4,10 +4,10 @@ module BooleanTermParser
   # This query parser adds an optional operator ("+" or "-") to the simple term
   # parser. In order to do that, a new "clause" node is added to the parse tree.
   class QueryParser < Parslet::Parser
-    rule(:term) { match('[a-zA-Z0-9]').repeat(1).as(:term) }
+    rule(:term) { match('[^\s]').repeat(1).as(:term) }
     rule(:operator) { (str('+') | str('-')).as(:operator) }
     rule(:clause) { (operator.maybe >> term).as(:clause) }
-    rule(:space)  { match('\s').repeat(1) }
+    rule(:space) { match('\s').repeat(1) }
     rule(:query) { (clause >> space.maybe).repeat.as(:query) }
     root(:query)
   end

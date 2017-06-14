@@ -1,10 +1,10 @@
 require 'parslet'
 
 module TermParser
-  # This is a simple parser that matches a sequence of alphanumeric characters and
-  # converts it to an Elasticsearch match query.
+  # This is a simple parser that matches a sequence of non-whitespace characters
+  # and converts it to an Elasticsearch match query.
   class QueryParser < Parslet::Parser
-    rule(:term) { match('[a-zA-Z0-9]').repeat(1).as(:term) }
+    rule(:term) { match('[^\s]').repeat(1).as(:term) }
     rule(:space) { match('\s').repeat(1) }
     rule(:query) { (term >> space.maybe).repeat.as(:query) }
     root(:query)

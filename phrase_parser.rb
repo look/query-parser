@@ -5,7 +5,7 @@ module PhraseParser
   # terms. This is done creating multiple types of clauses instead of just one.
   # A phrase clause generates an Elasticsearch match_phrase query.
   class QueryParser < Parslet::Parser
-    rule(:term) { match('[a-zA-Z0-9]').repeat(1).as(:term) }
+    rule(:term) { match('[^\s"]').repeat(1).as(:term) }
     rule(:quote) { str('"') }
     rule(:operator) { (str('+') | str('-')).as(:operator) }
     rule(:phrase) { (quote >> (term >> space.maybe).repeat >> quote).as(:phrase) }

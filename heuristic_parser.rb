@@ -5,12 +5,14 @@ module HeuristicParser
   # It adds a new clause type for date ranges. The parser recognizes strings
   # like "1920s" or "2010" as dates instead of generic terms.
   class QueryParser < Parslet::Parser
+    rule(:eof) { any.absent? }
     rule(:decade) do
       ((str('1') >> str('9') |
         str('2') >> str('0')) >>
-       match('\d') >> str('0')).as(:decade) >> str('s').maybe
+       match('\d') >> str('0')).as(:decade) >>
+        str('s').maybe >> (eof | space).present?
     end
-    rule(:term) { match('[a-zA-Z0-9]').repeat(1).as(:term) }
+    rule(:term) { match('[^\s"]').repeat(1).as(:term) }
     rule(:quote) { str('"') }
     rule(:operator) { (str('+') | str('-')).as(:operator) }
     rule(:phrase) { (quote >> (term >> space.maybe).repeat >> quote).as(:phrase) }

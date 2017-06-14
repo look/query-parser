@@ -69,6 +69,5 @@ The tutorial is under copyright and cannot be republished without my permission.
 
 ## TODO
 
-- [] decade fix -- requires lookahead to make sure decade actually is. Need to backport fix
 - [] performance?
 - [] final copy edits

@@ -69,4 +69,26 @@ class PhraseParserTests < Minitest::Test
 
     assert_equal(expected, tree)
   end
+
+  def test_mismatched_quotation_marks
+    assert_raises Parslet::ParseFailed do
+      PhraseParser::QueryParser.new.parse('"foo')
+    end
+  end
+
+  def test_quotation_mark_in_term
+    assert_raises Parslet::ParseFailed do
+      PhraseParser::QueryParser.new.parse('fo"o')
+    end
+  end
+
+  def test_mismatched_quotation_mark_delimiter
+    # We'll call this a "feature" since the quotation marks are balanced.
+    # If you don't want this, you can use lookahead to ensure end-quote is followed by a space or EOF
+    tree = PhraseParser::QueryParser.new.parse('"foo"+bar"baz"')
+    expected = {:query => [{:clause => {:phrase => [{:term => 'foo'}]}},
+                           {:clause => {:operator => '+', :term => 'bar'}},
+                           {:clause => {:phrase => [{:term => 'baz'}]}}]}
+    assert_equal(expected, tree)
+  end
 end

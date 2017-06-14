@@ -324,7 +324,7 @@ Extra input after last repetition at line 1 char 6.
 
 The simple parser above can recognize strings that match the grammar, but can't do anything with it. Using `#as`, we can capture parts of the input that we want to keep and save them as a parse tree. Anything not named with `#as` is discarded.
 
-We need to capture the terms and the overall query.
+We need to capture the terms and the overall query. To be more flexible with user input, the `term` rule has been updated to match any non-whitespace character.
 
     {{code="term_parser.rb:6-11"}}
 
@@ -574,9 +574,9 @@ Where `decade` is defined as:
 
 To implement this, we add the new `decade` rule to the parser and use it in the `clause` rule.
 
-    {{code="heuristic_parser.rb:7-21"}}
+    {{code="heuristic_parser.rb:7-23"}}
 
-A PEG parser always takes the first alternative, so we need to make `decade` match before `term`, because a `decade` is always a valid `term`. If we didn't do this, the `decade` rule would never match.
+A PEG parser always takes the first alternative, so we need to make `decade` match before `term`, because a `decade` is always a valid `term`. If we didn't do this, the `decade` rule would never match. We also need to add a lookahead for space or end of input to the `decade` rule. Without this, input like <span class="query-string">1990th</span> would be parsed as a decade `1990` and a term `th`.
 
 For the transformer, we define a `DateRangeClause` class that takes a number and converts it into a start and end date:
 
