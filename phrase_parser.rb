@@ -8,7 +8,9 @@ module PhraseParser
     rule(:term) { match('[^\s"]').repeat(1).as(:term) }
     rule(:quote) { str('"') }
     rule(:operator) { (str('+') | str('-')).as(:operator) }
-    rule(:phrase) { (quote >> (term >> space.maybe).repeat >> quote).as(:phrase) }
+    rule(:phrase) do
+      (quote >> (term >> space.maybe).repeat >> quote).as(:phrase)
+    end
     rule(:clause) { (operator.maybe >> (phrase | term)).as(:clause) }
     rule(:space)  { match('\s').repeat(1) }
     rule(:query) { (clause >> space.maybe).repeat.as(:query) }
@@ -65,16 +67,11 @@ module PhraseParser
   class Query
     attr_accessor :should_clauses, :must_not_clauses, :must_clauses
 
-    def self.elasticsearch_query_for(query_string)
-      tree = QueryParser.new.parse(query_string)
-      query = QueryTransformer.new.apply(tree)
-      query.to_elasticsearch
-    end
-
     def initialize(clauses)
-      self.should_clauses = clauses.select { |c| c.operator == :should }
-      self.must_not_clauses = clauses.select { |c| c.operator == :must_not }
-      self.must_clauses = clauses.select { |c| c.operator == :must }
+      grouped = clauses.chunk { |c| c.operator }.to_h
+      self.should_clauses = grouped.fetch(:should, [])
+      self.must_not_clauses = grouped.fetch(:must_not, [])
+      self.must_clauses = grouped.fetch(:must, [])
     end
 
     def to_elasticsearch

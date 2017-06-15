@@ -400,12 +400,15 @@ Parsing a query yields a parse tree like this:
 ```ruby
 QueryParser.new.parse("the +cat in the -hat")
 # =>
-{:query=>
-  [{:clause=>{:term=>"the"@0}},
-   {:clause=>{:operator=>"+"@4, :term=>"cat"@5}},
-   {:clause=>{:term=>"in"@9}},
-   {:clause=>{:term=>"the"@12}},
-   {:clause=>{:operator=>"-"@16, :term=>"hat"@17}}]}
+{
+  :query => [
+    {:clause => {:term => "the"@0}},
+    {:clause => {:operator => "+"@4, :term => "cat"@5}},
+    {:clause => {:term => "in"@9}},
+    {:clause => {:term => "the"@12}},
+    {:clause => {:operator => "-"@16, :term => "hat"@17}}
+  ]
+}
 ```
 
 Transforming this parse tree into the Elasticsearch query DSL will be a little more complicated than the previous iteration, where we could use `match` directly. Elasticsearch supports several [compound queries](https://www.elastic.co/guide/en/elasticsearch/reference/current/compound-queries.html) that allow you to combine simpler queries in complicated ways. For our parser, we'll use the [`bool` query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html). It looks like this:
@@ -426,19 +429,19 @@ Yes, the input to a `bool` query is more queries. This is why you can be overwhe
 
 In order to transform the parse tree into an Elasticsearch bool query, let's define a few classes.
 
-First `Operator` is a helper to convert `+`, `-`, or `nil` into `:must`, `:must_not`, or `:should`:
+First, a helper to convert `+`, `-`, or `nil` into `:must`, `:must_not`, or `:should`:
 
     {{code="boolean_term_parser.rb:22-35"}}
 
-Next, `Clause` holds an `Operator` and a term (which is a `String`):
+Next, `Clause` holds an operator and a term (which is a `String`):
 
     {{code="boolean_term_parser.rb:37-44"}}
 
 Finally, `Query` changes to take an `Array` of clauses and buckets them into `should`, `must`, and `must_not` for conversion to the Elasticsearch query DSL:
 
-    {{code="boolean_term_parser.rb:46-87"}}
+    {{code="boolean_term_parser.rb:46-94"}}
 
-Using these classes, we can write a Parslet transformer to convert the parse tree to a `Query`:
+Using these classes, we can write a `Parslet::Transform` to convert the parse tree to a `Query`:
 
     {{code="boolean_term_parser.rb:15-20"}}
 
@@ -449,14 +452,53 @@ parse_tree = QueryParser.new.parse('the +cat in the -hat')
 query = QueryTransformer.new.apply(parse_tree)
 query.to_elasticsearch
 # =>
-{:query=>
-  {:bool=>
-    {:should=>
-      [{:match=>{:title=>{:query=>"the"}}},
-       {:match=>{:title=>{:query=>"in"}}},
-       {:match=>{:title=>{:query=>"the"}}}],
-     :must=>[{:match=>{:title=>{:query=>"cat"}}}],
-     :must_not=>[{:match=>{:title=>{:query=>"hat"}}}]}}}
+{
+  :query => {
+    :bool => {
+      :should => [
+        {
+          :match => {
+            :title => {
+              :query => "the"
+            }
+          }
+        },
+        {
+          :match => {
+            :title => {
+              :query => "in"
+            }
+          }
+        },
+        {
+          :match => {
+            :title => {
+              :query => "the"
+            }
+          }
+        }
+      ],
+      :must => [
+        {
+          :match => {
+            :title => {
+              :query => "cat"
+            }
+          }
+        }
+      ],
+      :must_not => [
+        {
+          :match => {
+            :title => {
+              :query => "hat"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
 ```
 
 Now we have a `bool` query ready to send to Elasticsearch!
@@ -482,35 +524,52 @@ Another important feature for a query parser is to be able to match phrases. In 
 
 Building on the previous example, let's add rules for matching a phrase, defined as a sequence of one or more terms surrounded by quotation marks.
 
-    {{code="phrase_parser.rb:7-16"}}
+    {{code="phrase_parser.rb:7-18"}}
 
 The parse tree for the example query looks like this:
 
 ```ruby
 QueryParser.new.parse('"cat in the hat" -green +ham')
 # =>
-{:query=>
-  [{:clause=>
-     {:phrase=>
-       [{:term=>"cat"@1},
-        {:term=>"in"@5},
-        {:term=>"the"@8},
-        {:term=>"hat"@12}]}},
-   {:clause=>{:operator=>"-"@17, :term=>"green"@18}},
-   {:clause=>{:operator=>"+"@24, :term=>"ham"@25}}]}
+{
+  :query => [
+    {
+      :clause => {
+        :phrase => [
+          {:term => "cat"@1},
+          {:term => "in"@5},
+          {:term => "the"@8},
+          {:term => "hat"@12}
+        ]
+      }
+    },
+    {
+      :clause => {
+        :operator => "-"@17,
+        :term => "green"@18
+      }
+    },
+    {
+      :clause => {
+        :operator => "+"@24,
+        :term => "ham"@25
+      }
+    }
+  ]
+}
 ```
 
 To support phrases, the `Clause` object needs to know whether it is a term clause or a phrase clause. To do this, let's introduce separate classes for `TermClause` and `PhraseClause`:
 
-    {{code="phrase_parser.rb:47-63"}}
+    {{code="phrase_parser.rb:49-65"}}
 
 Other than this change, the code stays quite similar to the boolean term query parser. `Query` now needs to operate on the clause level rather than the term level, and later when generating the `bool` queries, choose `match` or `match_phrase` depending on the type.
 
-    {{code="phrase_parser.rb:65-139"}}
+    {{code="phrase_parser.rb:67-136"}}
 
 With these classes defined, `QueryTransformer` can take the parse tree and transform it into a `Query`:
 
-    {{code="phrase_parser.rb:18-30"}}
+    {{code="phrase_parser.rb:20-32"}}
 
 Here is the Elasticsearch query it generates:
 
@@ -519,11 +578,39 @@ parse_tree = QueryParser.new.parse('"cat in the hat" -green +ham')
 query = QueryTransformer.new.apply(parse_tree)
 query.to_elasticsearch
 # =>
-{:query=>
-  {:bool=>
-    {:should=>[{:match_phrase=>{:title=>{:query=>"cat in the hat"}}}],
-     :must=>[{:match=>{:title=>{:query=>"ham"}}}],
-     :must_not=>[{:match=>{:title=>{:query=>"green"}}}]}}}
+{
+  :query => {
+    :bool => {
+      :should => [
+        {
+          :match_phrase => {
+            :title => {
+              :query => "cat in the hat"
+            }
+          }
+        }
+      ],
+      :must => [
+        {
+          :match => {
+            :title => {
+              :query => "ham"
+            }
+          }
+        }
+      ],
+      :must_not => [
+        {
+          :match => {
+            :title => {
+              :query => "green"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
 ```
 
 You can try out the `PhraseParser` by running `bundle exec bin/parse PhraseParser`.
@@ -580,11 +667,11 @@ A PEG parser always takes the first alternative, so we need to make `decade` mat
 
 For the transformer, we define a `DateRangeClause` class that takes a number and converts it into a start and end date:
 
-    {{code="heuristic_parser.rb:71-79"}}
+    {{code="heuristic_parser.rb:75-83"}}
 
 Finally, we add a `date_range` method to the `Query` class that converts a `DateRangeClause` into the Elasticsearch query DSL.
 
-    {{code="heuristic_parser.rb:152-161"}}
+    {{code="heuristic_parser.rb:156-165"}}
 
 Here is the Elasticsearch query DSL it generates:
 
@@ -592,12 +679,37 @@ Here is the Elasticsearch query DSL it generates:
 parse_tree = QueryParser.new.parse('cats "in the hat" 1970s')
 query = QueryTransformer.new.apply(parse_tree)
 query.to_elasticsearch
-#=> {:query=>
-  {:bool=>
-    {:should=>
-      [{:match=>{:title=>{:query=>"cats"}}},
-       {:match_phrase=>{:title=>{:query=>"in the hat"}}},
-       {:range=>{:publication_year=>{:gte=>1970, :lte=>1979}}}]}}}
+#=>
+{
+  :query => {
+    :bool => {
+      :should => [
+        {
+          :match => {
+            :title => {
+              :query => "cats"
+            }
+          }
+        },
+        {
+          :match_phrase => {
+            :title => {
+              :query => "in the hat"
+            }
+          }
+        },
+        {
+          :range => {
+            :publication_year => {
+              :gte => 1970,
+              :lte => 1979
+            }
+          }
+        }
+      ]
+    }
+  }
+}
 ```
 
 You can try out the `HeuristicParser` by running `bundle exec bin/parse HeuristicParser`.

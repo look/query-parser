@@ -15,9 +15,11 @@ module HeuristicParser
     rule(:term) { match('[^\s"]').repeat(1).as(:term) }
     rule(:quote) { str('"') }
     rule(:operator) { (str('+') | str('-')).as(:operator) }
-    rule(:phrase) { (quote >> (term >> space.maybe).repeat >> quote).as(:phrase) }
+    rule(:phrase) do
+      (quote >> (term >> space.maybe).repeat >> quote).as(:phrase)
+    end
     rule(:clause) { (operator.maybe >> (phrase | decade | term)).as(:clause) }
-    rule(:space)  { match('\s').repeat(1) }
+    rule(:space) { match('\s').repeat(1) }
     rule(:query) { (clause >> space.maybe).repeat.as(:query) }
     root(:query)
   end
