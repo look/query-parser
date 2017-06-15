@@ -113,7 +113,7 @@ The higher-level queries are all implemented in terms of the lower-level queries
 * `simple_query_string`: Parses a string and constructs a `bool` query with phrases, fuzziness, and prefixes
 * `query_string`: Parses a very complicated syntax and constructs a `bool` query with phrases, fuzziness, prefixes, ranges, regular expressions, etc.
     
-`match` is very safe to expose to users, but also limited in what it can do. The jump up to `simple_query_parser` adds a lot of features you may not need, and `query_string` is explicitly not recommended.
+`match` is very safe to expose to users, but also limited in what it can do. The jump up to `simple_query_parser` adds a lot of features you may not need, and `query_string` is explicitly not recommended for end users.
     
 However, since there is no magic, there is no downside to generating lower-level queries in your application, rather than having Elasticsearch do it.
 
@@ -121,7 +121,7 @@ However, since there is no magic, there is no downside to generating lower-level
 
 The built-in query parser has its own syntax, which users may not understand. For example, [Elasticsearch's `query_string` syntax reserves](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_reserved_characters) `+`, `-`, `=`, `&&`, `||`, `>`, `<`, `!`, `(`, `)`, `{`, `}`, `[`, `]`, `^`, `"`, `~`, `*`, `?`, `:`, `\`, and `/`.
 
-Using the syntax incorrectly will either trigger an error or lead to unexpected results. For example, to prevent the query string <span class="query-string">alpha:cat "cat:hat"</span> from generating a query limiting the search for <span class="query-string">cat</span> to the field `alpha` (which might not exist), it should be escaped as <span class="query-string">alpha\:cat "cat:hat"</span>.
+Using the syntax incorrectly will either trigger an error or lead to unexpected results. For example, to prevent the query string <span class="query-string">alpha:cat "cat:hat"</span> from generating a query limiting the search for <span class="query-string">cat</span> to the field `alpha` (which might not exist), it needs to be escaped as <span class="query-string">alpha\\:cat "cat:hat"</span>.
 
 Escaping characters in a query string with regular expressions ranges from difficult to impossible. And some characters [can't be escaped, period](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#_reserved_characters):
 
@@ -166,7 +166,7 @@ This syntax is both complicated and may let users generate expensive queries.
 
 ## Take control of your search box
 
-Often, when you go down the built-in query parser route, you'll get something working quickly, but later run into problems. Users (or your exception monitoring software) complain that queries don't work; or extremely expensive queries slow the service down for everyone.
+If you go down the built-in query parser route, you'll get something working quickly. But you'll probably run into problems sooner or later. Users (or your exception monitoring software) will complain that queries don't work; or expensive queries will slow your service down for everyone and you'll have to figure out why.
 
 <div class="aside">
 
@@ -178,19 +178,19 @@ Your application's search interface may require more advanced search features, s
 
 </div>
 
-That's why it's worth the time to build a simple query parser. Here's some advantages:
+That's why it's worth the time to build your own query parser. Here's some advantages:
 
 * Limit queries to the features _you_ need
 * Handle expensive queries up front (for example, by limiting the number of terms that can be searched for)
-* Better and faster error feedback for users
-* Allows programmatic modification of search queries before running them (applications include query optimization, synonym expansion, spelling correction, or removing problematic characters)
+* Better and faster error feedback for users without a round-trip to the search engine
+* Allows programmatic modification of search queries before running them (applications include query optimization, synonym expansion, and spelling correction)
 * Build in heuristics specific to your application that are not possible for a general-purpose parser
 
-In this tutorial, I'll be walking through the creation of a query parser using the Ruby library [Parslet](http://kschiess.github.io/parslet/) that can generate queries for the Elasticsearch query DSL. Our query parser will be more limited than the syntax supported by `SimpleQueryParser`, but the syntax is controlled by _our_ code now, so we can add new features if _we_ need to.
+Fortunately, building a simple query parser is not difficult. In this tutorial, we will create a query parser using the Ruby library [Parslet](http://kschiess.github.io/parslet/) that can generate queries for the Elasticsearch query DSL. Our query parser will be more limited than the syntax supported by `SimpleQueryParser`, but the syntax will be controlled by _our_ code now, so we can add new features if _we_ need to.
 
 ## Building a term-based query parser
 
-At first, the query parser will be extremely limited. Given input like <span class="query-string">cat in the hat</span> it will be able to generate this Elasticsearch query:
+The first version of the query parser will be extremely limited. Given input like <span class="query-string">cat in the hat</span> it will be able to generate this Elasticsearch query:
 
 ```json
 {
@@ -615,13 +615,13 @@ query.to_elasticsearch
 
 You can try out the `PhraseParser` by running `bundle exec bin/parse PhraseParser`.
 
-With these features, this is a respectable query parser. It supports a simple syntax that's easy to understand and hard to mess up, and more importantly, hard to abuse. From here, we could improve the query parser in many ways to make it more robust. For example, we could limit phrases to 4 terms or limit the total number of clauses to 10. Because we are parsing the query ourselves, we can make decisions about what gets sent to Elasticsearch in an intelligent way that won't cause broken queries.
+With these features, this is a respectable query parser. It supports a simple syntax that's easy to understand and hard to mess up, and more importantly, hard to abuse.
 
 ## Going beyond generic query parsers: Adding heuristics
 
 So far, what we've built has been aimed at providing a simple user experience&mdash;and preventing harmful queries. However, another benefit of building your own query parser is that it is specific to your application, so you can tailor it to your domain.
 
-For example, let's say we are building search for a database of books. We know a lot about the data, and can develop heuristics for users' search input. Let's say that we know all publication dates for books in the catalog are from the twentieth and early twenty-first century. We can turn a search term like <span class="query-string">1970</span> or <span class="query-string">1970s</span> into a date range query for the dates 1970 to 1979.
+For example, let's say we are building search for a database of books. We know a lot about the data, and can develop heuristics for users' search input. If we know all publication dates for books in the catalog are from the twentieth and early twenty-first century, then we can turn a search term like <span class="query-string">1970</span> or <span class="query-string">1970s</span> into a date range query for the dates 1970 to 1979.
 
 For the search <span class="query-string">cats 1970s</span> the Elasticsearch query DSL we want to generate is:
 

@@ -66,8 +66,3 @@ bundle exec bin/parse BooleanTermParser
 The source code in this repository is released into the public domain.
 
 The tutorial is under copyright and cannot be republished without my permission.
-
-## TODO
-
-- [] performance?
-- [] final copy edits
