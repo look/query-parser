@@ -1,6 +1,6 @@
 # Build a query parser example code
 
-This is example code for my tutorial [Build a query parser](#coming-soon).
+This is example code for my tutorial [Build a query parser](http://www.recursion.org/query-parser/).
 
 ## How the code is organized
 
